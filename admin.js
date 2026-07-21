@@ -2,12 +2,15 @@
 
 const cfg = window.GF2_CONFIG || {};
 const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
+const PORTRAIT_DEFAULT = Object.freeze({ x: 0, y: -7, zoom: 250 });
+const PORTRAIT_ORIGINAL = Object.freeze({ x: 0, y: 0, zoom: 0 });
 let db = null;
 let session = null;
 let dolls = [];
 let dollSearchQuery = '';
 let editingImageUrl = '';
 let previewObjectUrl = '';
+let portraitDrag = null;
 
 const $ = id => document.getElementById(id);
 
@@ -125,10 +128,109 @@ function handleRemoveImageToggle() {
   }
 }
 
+function clampNumber(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
+}
+
+function updatePortraitPreviewTransform() {
+  const offsetX = clampNumber($('portraitOffsetX').value, 0, -50, 50);
+  const offsetY = clampNumber($('portraitOffsetY').value, PORTRAIT_DEFAULT.y, -50, 50);
+  const zoomPercent = clampNumber($('portraitScale').value, PORTRAIT_DEFAULT.zoom, -40, 500);
+  const preview = $('imagePreview');
+  const scale = Math.max(.6, 1 + zoomPercent / 100);
+
+  preview.style.setProperty('--preview-x', `${offsetX}%`);
+  preview.style.setProperty('--preview-y', `${offsetY}%`);
+  preview.style.setProperty('--preview-scale', String(scale));
+  $('portraitOffsetXValue').textContent = `${offsetX}%`;
+  $('portraitOffsetYValue').textContent = `${offsetY}%`;
+  $('portraitScaleValue').textContent = `${zoomPercent}%`;
+}
+
+function normalizePortraitValues(doll = null) {
+  const rawScale = Number(doll?.portrait_scale);
+  const legacy = Number.isFinite(rawScale) && rawScale >= .6 && rawScale <= 1.6;
+  return {
+    x: clampNumber(doll?.portrait_offset_x, PORTRAIT_DEFAULT.x, -50, 50),
+    y: clampNumber(
+      legacy ? Number(doll?.portrait_offset_y || 0) - 7 : doll?.portrait_offset_y,
+      PORTRAIT_DEFAULT.y,
+      -50,
+      50
+    ),
+    zoom: clampNumber(
+      legacy ? rawScale * 350 - 100 : doll?.portrait_scale,
+      PORTRAIT_DEFAULT.zoom,
+      -40,
+      500
+    )
+  };
+}
+
+function setPortraitPreset(values) {
+  $('portraitOffsetX').value = String(values.x);
+  $('portraitOffsetY').value = String(values.y);
+  $('portraitScale').value = String(values.zoom);
+  updatePortraitPreviewTransform();
+}
+
+function setPortraitControls(doll = null) {
+  setPortraitPreset(doll ? normalizePortraitValues(doll) : PORTRAIT_DEFAULT);
+}
+
+function handlePortraitPointerDown(event) {
+  if (event.button !== 0 || $('imagePreviewImage').hidden) return;
+  const preview = $('imagePreview');
+  const rect = preview.getBoundingClientRect();
+  portraitDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startOffsetX: clampNumber($('portraitOffsetX').value, 0, -50, 50),
+    startOffsetY: clampNumber($('portraitOffsetY').value, PORTRAIT_DEFAULT.y, -50, 50),
+    width: Math.max(1, rect.width),
+    height: Math.max(1, rect.height)
+  };
+  preview.setPointerCapture?.(event.pointerId);
+  preview.classList.add('dragging');
+  event.preventDefault();
+}
+
+function handlePortraitPointerMove(event) {
+  if (!portraitDrag || portraitDrag.pointerId !== event.pointerId) return;
+  const nextX = clampNumber(
+    portraitDrag.startOffsetX + ((event.clientX - portraitDrag.startX) / portraitDrag.width) * 100,
+    portraitDrag.startOffsetX,
+    -50,
+    50
+  );
+  const nextY = clampNumber(
+    portraitDrag.startOffsetY + ((event.clientY - portraitDrag.startY) / portraitDrag.height) * 100,
+    portraitDrag.startOffsetY,
+    -50,
+    50
+  );
+  $('portraitOffsetX').value = String(Math.round(nextX));
+  $('portraitOffsetY').value = String(Math.round(nextY));
+  updatePortraitPreviewTransform();
+  event.preventDefault();
+}
+
+function endPortraitDrag(event) {
+  if (!portraitDrag || (event.pointerId != null && portraitDrag.pointerId !== event.pointerId)) return;
+  const preview = $('imagePreview');
+  try { preview.releasePointerCapture?.(portraitDrag.pointerId); } catch (_) {}
+  preview.classList.remove('dragging');
+  portraitDrag = null;
+}
+
 async function init() {
   applyTheme(document.documentElement.dataset.theme, false);
   bindEvents();
   setImagePreview('');
+  setPortraitControls();
 
   if (!cfg.supabaseUrl || !cfg.supabasePublishableKey || cfg.supabaseUrl.includes('YOUR_PROJECT')) {
     $('authState').textContent = 'config.js 설정이 필요합니다.';
@@ -155,6 +257,17 @@ function bindEvents() {
   $('clearSearchButton').addEventListener('click', clearDollSearch);
   $('image').addEventListener('change', handleImageSelection);
   $('removeImage').addEventListener('change', handleRemoveImageToggle);
+  ['portraitOffsetX', 'portraitOffsetY', 'portraitScale'].forEach(id => {
+    $(id).addEventListener('input', updatePortraitPreviewTransform);
+  });
+  $('originalPortraitButton').addEventListener('click', () => setPortraitPreset(PORTRAIT_ORIGINAL));
+  $('resetPortraitButton').addEventListener('click', () => setPortraitPreset(PORTRAIT_DEFAULT));
+  $('imagePreview').addEventListener('pointerdown', handlePortraitPointerDown);
+  $('imagePreview').addEventListener('pointermove', handlePortraitPointerMove);
+  $('imagePreview').addEventListener('pointerup', endPortraitDrag);
+  $('imagePreview').addEventListener('pointercancel', endPortraitDrag);
+  $('imagePreview').addEventListener('lostpointercapture', endPortraitDrag);
+  $('imagePreviewImage').addEventListener('dragstart', event => event.preventDefault());
 }
 
 async function handleLogin() {
@@ -395,6 +508,7 @@ function fillForm(doll) {
   clearPreviewObjectUrl();
   editingImageUrl = doll.image_url || '';
   setImagePreview(editingImageUrl);
+  setPortraitControls(doll);
   $('name').focus();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -408,6 +522,7 @@ function clearForm() {
   editingImageUrl = '';
   clearPreviewObjectUrl();
   setImagePreview('');
+  setPortraitControls();
   setNewDollDefaults();
 }
 
@@ -437,7 +552,7 @@ async function saveDoll(event) {
   const name = $('name').value.trim();
   const slug = $('slug').value.trim().toLowerCase();
   if (!name || !slug) {
-    toast('인형 이름과 슬러그를 입력해주세요.', true);
+    toast('인형 이름과 인형 번호를 입력해주세요.', true);
     return;
   }
 
@@ -459,6 +574,9 @@ async function saveDoll(event) {
       common_key_effect: $('commonEffect').value.trim(),
       display_order: Number($('order').value || 0),
       image_url: imageUrl,
+      portrait_scale: clampNumber($('portraitScale').value, PORTRAIT_DEFAULT.zoom, -40, 500),
+      portrait_offset_x: clampNumber($('portraitOffsetX').value, PORTRAIT_DEFAULT.x, -50, 50),
+      portrait_offset_y: clampNumber($('portraitOffsetY').value, PORTRAIT_DEFAULT.y, -50, 50),
       is_active: $('active').checked
     };
 

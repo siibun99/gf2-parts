@@ -557,6 +557,100 @@
       .list-toolbar { grid-template-columns: 1fr; }
       .search-clear { width: 100%; }
     }
+
+
+    /* v13: 0·0·0은 원본 전체, 기본값은 기존 확대 프리셋입니다. */
+    .image-field { grid-template-columns: 110px minmax(0, 1fr); }
+    .image-preview {
+      min-height: 144px;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .image-preview.dragging { cursor: grabbing; }
+
+    .preview-position,
+    .preview-zoom {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .preview-position {
+      transform: translate(var(--preview-x, 0%), var(--preview-y, -7%));
+    }
+
+    .preview-zoom {
+      transform: scale(var(--preview-scale, 3.5));
+      transform-origin: center top;
+    }
+
+    .image-preview img {
+      transform: none;
+      transform-origin: center center;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .portrait-adjustments {
+      margin: -1px 0 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+
+    .adjustment-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    .adjustment-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .adjustment-grid {
+      display: grid;
+      gap: 7px;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) 48px;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .range-row input[type="range"] {
+      min-height: 26px;
+      padding: 0;
+      accent-color: var(--accent);
+      box-shadow: none;
+    }
+
+    .range-row output {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .adjustment-reset {
+      min-height: 30px;
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
   </style>
 </head>
 <body>
@@ -594,11 +688,14 @@
         <form id="dollForm">
           <input id="id" type="hidden">
 
+          <label>인형 이름<input id="name" required maxlength="80"></label>
+
           <div class="two">
-            <label>인형 이름<input id="name" required maxlength="80"></label>
-            <label>고정 슬러그
-              <input id="slug" required readonly pattern="[a-z0-9-]+" placeholder="doll-064" aria-describedby="slugHelp">
-              <span id="slugHelp" class="field-help">새 인형 작성 시 기존 마지막 번호의 다음 값이 자동 입력됩니다.</span>
+            <label>인형 번호
+              <input id="slug" required readonly pattern="[a-z0-9-]+" placeholder="doll-064">
+            </label>
+            <label>표시 순서
+              <input id="order" type="number" min="0">
             </label>
           </div>
 
@@ -621,25 +718,47 @@
           <label>파츠 옵션 · 최대 3개<input id="parts" placeholder="공격, 공격 보너스, 치명타"></label>
           <label>기본 비고<textarea id="note" maxlength="1000"></textarea></label>
 
-          <div class="two">
-            <label>공용키<input id="commonKey"></label>
-            <label>표시 순서
-              <input id="order" type="number" min="0" aria-describedby="orderHelp">
-              <span id="orderHelp" class="field-help">현재 표시 순서 최댓값 + 1로 자동 입력되며 필요하면 수정할 수 있습니다.</span>
-            </label>
-          </div>
-
+          <label>공용키<input id="commonKey"></label>
           <label>공용키 효과<textarea id="commonEffect" maxlength="2000"></textarea></label>
 
           <div class="image-field">
             <div id="imagePreview" class="image-preview">
               <span id="imagePreviewFallback" class="preview-fallback">일러스트<br>없음</span>
-              <img id="imagePreviewImage" alt="선택한 인형 일러스트 미리보기" hidden>
+              <span id="imagePreviewPosition" class="preview-position">
+                <span id="imagePreviewZoom" class="preview-zoom">
+                  <img id="imagePreviewImage" alt="선택한 인형 일러스트 미리보기" draggable="false" hidden>
+                </span>
+              </span>
             </div>
             <div class="image-controls">
               <label>인형 일러스트<input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
               <div id="imageStateText" class="image-state">PNG, JPEG, WebP · 최대 5MB</div>
             </div>
+          </div>
+
+          <div class="portrait-adjustments">
+            <div class="adjustment-title">
+              <span>일러스트 프리셋</span>
+              <div class="adjustment-actions">
+                <button id="originalPortraitButton" class="adjustment-reset" type="button">원본</button>
+                <button id="resetPortraitButton" class="adjustment-reset" type="button">기본값</button>
+              </div>
+            </div>
+            <div class="adjustment-grid">
+              <label class="range-row">좌우
+                <input id="portraitOffsetX" type="range" min="-50" max="50" step="1" value="0">
+                <output id="portraitOffsetXValue">0%</output>
+              </label>
+              <label class="range-row">상하
+                <input id="portraitOffsetY" type="range" min="-50" max="50" step="1" value="-7">
+                <output id="portraitOffsetYValue">-7%</output>
+              </label>
+              <label class="range-row">크기
+                <input id="portraitScale" type="range" min="-40" max="500" step="1" value="250">
+                <output id="portraitScaleValue">250%</output>
+              </label>
+            </div>
+            <span class="field-help">0·0·0은 원본 전체 보기입니다. 슬라이더 또는 미리보기를 마우스로 끌어 위치를 조절할 수 있습니다.</span>
           </div>
 
           <label class="check-row"><input id="removeImage" type="checkbox">현재 일러스트 제거</label>
@@ -661,7 +780,7 @@
         </div>
         <div class="list-toolbar">
           <label class="list-search" for="dollSearch">
-            <input id="dollSearch" type="search" placeholder="이름, 슬러그, 무기, 속성 검색" autocomplete="off">
+            <input id="dollSearch" type="search" placeholder="이름, 인형 번호, 무기, 속성 검색" autocomplete="off">
           </label>
           <button id="clearSearchButton" class="search-clear" type="button" disabled>검색 초기화</button>
         </div>

@@ -1050,13 +1050,13 @@
     }
 
     .card-grid {
-      grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+      gap: 10px;
     }
 
     .doll-card {
       isolation: isolate;
-      padding: 15px 16px 16px;
+      padding: 12px 13px 13px;
       border-radius: 3px;
       background:
         linear-gradient(135deg, var(--panel-sheen), transparent 42%),
@@ -1082,16 +1082,32 @@
       opacity: .88;
     }
 
-    .card-head { gap: 12px; }
+    .card-title-line {
+      position: relative;
+      min-width: 0;
+      margin-bottom: 9px;
+      padding: 0 2px 8px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+    }
+
+    .card-title-line::after {
+      content: "";
+      position: absolute;
+      left: 2px;
+      bottom: -1px;
+      width: 46px;
+      height: 2px;
+      background: var(--attr-color, var(--accent));
+    }
 
     .card-identity {
-      gap: 15px;
+      gap: 12px;
       align-items: stretch;
     }
 
     .doll-portrait {
-      width: 128px;
-      height: 168px;
+      width: 110px;
+      height: 144px;
       border-radius: 2px;
       border-color: color-mix(in srgb, var(--attr-color) 58%, var(--line));
       background:
@@ -1142,9 +1158,9 @@
       justify-content: center;
       width: 100%;
       height: 100%;
-      padding: 24px 10px 28px;
+      padding: 24px 9px 27px;
       color: var(--portrait-text);
-      font-size: clamp(13px, 1.25vw, 18px);
+      font-size: clamp(12px, 1.15vw, 17px);
       font-weight: 900;
       line-height: 1.25;
       letter-spacing: -.04em;
@@ -1161,48 +1177,59 @@
 
     .identity-text {
       display: flex;
-      min-height: 168px;
+      min-width: 0;
+      min-height: 144px;
+      flex: 1;
       flex-direction: column;
       justify-content: flex-start;
-      padding-top: 3px;
+      padding-top: 1px;
     }
 
     .doll-name {
-      position: relative;
-      padding-bottom: 8px;
-      font-size: 23px;
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-size: clamp(20px, 2vw, 23px);
       font-weight: 950;
+      line-height: 1.12;
+      letter-spacing: -.035em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      word-break: keep-all;
     }
 
-    .doll-name::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      width: 42px;
-      height: 2px;
-      background: var(--attr-color, var(--accent));
-    }
-
-    .meta-row { margin-top: 9px; }
+    .meta-row { margin-top: 0; }
 
     .tag,
     .option-tag {
-      min-height: 23px;
+      min-height: 21px;
+      padding: 2px 7px;
       border-radius: 3px;
-      font-size: 11px;
+      font-size: 10.5px;
       letter-spacing: .01em;
     }
 
     .status-controls {
-      max-width: 230px;
-      gap: 5px;
+      justify-content: flex-start;
+      max-width: none;
+      margin-top: 7px;
+      gap: 4px;
     }
 
     .status-chip {
-      min-height: 30px;
+      min-height: 27px;
+      padding: 4px 7px;
       border-radius: 3px;
       background: var(--panel-2);
+      font-size: 10.5px;
+    }
+
+    .compact-config {
+      margin-top: 7px;
+    }
+
+    .compact-config .config-title {
+      margin-bottom: 4px;
     }
 
     .status-chip.active[data-status="tracked"] { box-shadow: inset 3px 0 0 var(--accent); }
@@ -1210,14 +1237,22 @@
     .status-chip.active[data-status="completed"] { box-shadow: inset 3px 0 0 var(--success); }
 
     .config-block {
+      margin-top: 9px;
+      padding-top: 8px;
       border-top-style: solid;
       border-top-color: color-mix(in srgb, var(--line) 78%, transparent);
     }
 
     .config-title {
+      margin-bottom: 5px;
       color: var(--muted);
-      font-size: 10px;
-      letter-spacing: .13em;
+      font-size: 9.5px;
+      letter-spacing: .11em;
+    }
+
+    .piece-grid {
+      gap: 5px;
+      margin-top: 8px;
     }
 
     .piece-button,
@@ -1228,13 +1263,32 @@
     }
 
     .piece-button {
+      min-height: 38px;
+      padding: 6px 8px;
       background:
         linear-gradient(135deg, var(--panel-sheen), transparent 52%),
         var(--panel-2);
     }
 
+    .card-note,
+    .key-box {
+      margin-top: 8px;
+      padding: 7px 9px;
+    }
+
     .card-note {
       background: var(--orange-soft);
+    }
+
+    .personal-note-field { margin-top: 8px; }
+    .personal-note-field span { margin-bottom: 4px; }
+    .personal-note-field textarea {
+      min-height: 54px;
+      padding: 8px 9px;
+    }
+
+    .card-actions {
+      padding-top: 9px;
     }
 
     .reference-section,
@@ -1255,27 +1309,114 @@
         var(--panel-3);
     }
 
-    @media (max-width: 1040px) {
+    @media (max-width: 900px) {
       .card-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 680px) {
-      .doll-card { padding: 13px; }
-      .card-head { display: block; }
-      .status-controls { justify-content: flex-start; max-width: none; margin-top: 11px; }
-      .doll-portrait { width: 112px; height: 148px; }
-      .identity-text { min-height: 148px; }
+      .doll-card { padding: 11px; }
+      .card-title-line { margin-bottom: 8px; padding-bottom: 7px; }
+      .doll-portrait { width: 102px; height: 134px; }
+      .identity-text { min-height: 134px; }
       .doll-portrait { --portrait-scale: 3.25; --portrait-offset-y: -6%; }
     }
 
     @media (max-width: 480px) {
       .toolbar { padding: 9px; }
-      .card-identity { gap: 11px; align-items: stretch; }
-      .doll-portrait { width: 100px; height: 136px; }
-      .identity-text { min-height: 136px; }
-      .doll-name { font-size: 21px; }
+      .card-grid { gap: 8px; }
+      .card-identity { gap: 9px; align-items: stretch; }
+      .doll-portrait { width: 92px; height: 124px; }
+      .identity-text { min-height: 124px; }
+      .doll-name { font-size: 20px; }
       .doll-portrait { --portrait-scale: 3.05; --portrait-offset-y: -5%; }
+      .status-chip { padding-inline: 6px; font-size: 10px; }
       .piece-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+
+
+    /* v13: 카드 높이 통일, 장비 옵션 묶음, 인형별 일러스트 프리셋 */
+    .card-grid {
+      align-items: stretch;
+      grid-auto-rows: 1fr;
+    }
+
+    .doll-card {
+      min-height: 100%;
+      height: 100%;
+      align-self: stretch;
+    }
+
+    .card-identity { flex: 0 0 auto; }
+
+    .gear-options-panel {
+      display: grid;
+      gap: 6px;
+      margin-top: 9px;
+      padding: 8px;
+      border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+      background:
+        linear-gradient(135deg, var(--panel-sheen), transparent 52%),
+        var(--panel-2);
+    }
+
+    .gear-option-row {
+      display: grid;
+      grid-template-columns: 49px minmax(0, 1fr);
+      align-items: start;
+      gap: 7px;
+      min-height: 24px;
+    }
+
+    .gear-option-row + .gear-option-row {
+      padding-top: 6px;
+      border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+    }
+
+    .gear-option-label {
+      padding-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .key-box {
+      min-height: 62px;
+    }
+
+    .key-box .key-effect {
+      min-height: 1.55em;
+      margin-top: 3px;
+    }
+
+    .key-box.empty strong { color: var(--faint); }
+
+    .portrait-position,
+    .portrait-zoom {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .portrait-position {
+      transform: translate(var(--portrait-user-x, 0%), var(--portrait-user-y, -7%));
+    }
+
+    .portrait-zoom {
+      transform: scale(var(--portrait-user-scale, 3.5));
+      transform-origin: center top;
+    }
+
+    .portrait-zoom .portrait-image {
+      transform: none;
+      transform-origin: center center;
+    }
+
+    @media (max-width: 900px) {
+      .card-grid { grid-auto-rows: auto; }
+      .doll-card { min-height: 0; height: auto; }
     }
 
   </style>
@@ -1338,7 +1479,7 @@
       <div class="reference-toolbar">
         <div>
           <strong>무기파츠 표</strong>
-          <div class="subtitle">장비파밍 현황에서 저장한 개인 구성을 무기 종류별로 실시간 분류합니다.</div>
+          <div class="subtitle">장비파밍 현황에서 저장한 장비 설정을 무기 종류별로 실시간 분류합니다.</div>
         </div>
         <button class="button small" type="button" id="toggleReferenceButton">모두 펼치기</button>
       </div>
@@ -1629,7 +1770,17 @@
           note: row.default_note || '',
           keyName: row.common_key || '',
           keyEffect: row.common_key_effect || '',
-          imageUrl: row.image_url || ''
+          imageUrl: row.image_url || '',
+          portraitScale: (() => {
+            const raw = Number(row.portrait_scale ?? 250);
+            return raw >= .6 && raw <= 1.6 ? raw * 350 - 100 : raw;
+          })(),
+          portraitOffsetX: Number(row.portrait_offset_x ?? 0),
+          portraitOffsetY: (() => {
+            const rawScale = Number(row.portrait_scale ?? 250);
+            const rawY = Number(row.portrait_offset_y ?? (rawScale >= .6 && rawScale <= 1.6 ? 0 : -7));
+            return rawScale >= .6 && rawScale <= 1.6 ? rawY - 7 : rawY;
+          })()
         })),
         setOptions,
         statOptions,
@@ -1855,39 +2006,40 @@
 
       return `
         <article class="doll-card status-${config.status}" style="--attr-color:${color}" data-name="${encodedName}">
-          <div class="card-head">
-            <div class="card-identity">
-              ${renderDollPortrait(doll)}
-              <div class="identity-text">
-                <h2 class="doll-name">${escapeHtml(doll.name)}</h2>
-                <div class="meta-row">
-                  <span class="tag">${escapeHtml(doll.weapon)}</span>
-                  ${doll.attr ? `<span class="tag attr">${escapeHtml(doll.attr)}</span>` : ''}
-                </div>
+          <div class="card-title-line">
+            <h2 class="doll-name" title="${escapeHtml(doll.name)}">${escapeHtml(doll.name)}</h2>
+          </div>
+
+          <div class="card-identity">
+            ${renderDollPortrait(doll)}
+            <div class="identity-text">
+              <div class="meta-row">
+                <span class="tag">${escapeHtml(doll.weapon)}</span>
+                ${doll.attr ? `<span class="tag attr">${escapeHtml(doll.attr)}</span>` : ''}
+              </div>
+
+              <div class="status-controls" aria-label="인형 상태">
+                <button class="status-chip ${config.status === 'tracked' ? 'active' : ''}" type="button" data-action="set-status" data-status="tracked">파밍 대상</button>
+                <button class="status-chip ${config.status === 'unowned' ? 'active' : ''}" type="button" data-action="set-status" data-status="unowned">미보유</button>
+                <button class="status-chip ${config.status === 'completed' ? 'active' : ''}" type="button" data-action="set-status" data-status="completed">파밍 완료</button>
+              </div>
+
+              <div class="compact-config">
+                <div class="config-title"><span>세트 옵션</span><span>${config.setOptions.length}개</span></div>
+                <div class="option-row">${renderOptionTags(config.setOptions, 'set')}</div>
               </div>
             </div>
-            <div class="status-controls" aria-label="인형 상태">
-              <button class="status-chip ${config.status === 'tracked' ? 'active' : ''}" type="button" data-action="set-status" data-status="tracked">파밍 대상</button>
-              <button class="status-chip ${config.status === 'unowned' ? 'active' : ''}" type="button" data-action="set-status" data-status="unowned">미보유</button>
-              <button class="status-chip ${config.status === 'completed' ? 'active' : ''}" type="button" data-action="set-status" data-status="completed">파밍 완료</button>
-            </div>
           </div>
 
-          <div class="config-block">
-            <div class="config-title"><span>세트 옵션</span><span>${config.setOptions.length}개</span></div>
-            <div class="option-row">${renderOptionTags(config.setOptions, 'set')}</div>
-          </div>
-
-          <div class="config-block">
-            <div class="config-title"><span>총구 · 4개 옵션</span><span>${config.muzzle.length}/4</span></div>
-            <div class="option-row">${renderOptionTags(config.muzzle)}</div>
-          </div>
-
-          <div class="config-block">
-            <div class="config-title"><span>파츠 1·2·3 · 각각 3개 옵션</span><span>개인 구성</span></div>
-            ${config.parts.map((options, index) => `
-              <div style="margin-top:${index ? 7 : 0}px">
-                <div class="subtitle" style="margin:0 0 4px">파츠 ${index + 1}</div>
+          <div class="gear-options-panel" aria-label="총구와 파츠 옵션">
+            ${[
+              ['총구', config.muzzle],
+              ['파츠 1', config.parts[0]],
+              ['파츠 2', config.parts[1]],
+              ['파츠 3', config.parts[2]]
+            ].map(([label, options]) => `
+              <div class="gear-option-row">
+                <span class="gear-option-label">${label}</span>
                 <div class="option-row">${renderOptionTags(options)}</div>
               </div>`).join('')}
           </div>
@@ -1903,11 +2055,10 @@
             <span>개인 비고</span>
             <textarea data-action="personal-note" maxlength="500" placeholder="시트 비고가 기본 입력되며 자유롭게 수정할 수 있습니다.">${escapeHtml(config.personalNote)}</textarea>
           </label>
-          ${doll.keyName ? `
-            <div class="key-box">
-              <strong>공용키 · ${escapeHtml(doll.keyName)}</strong><br>
-              ${escapeHtml(doll.keyEffect)}
-            </div>` : ''}
+          <div class="key-box${doll.keyName ? '' : ' empty'}">
+            <strong>공용키 · ${doll.keyName ? escapeHtml(doll.keyName) : '미등록'}</strong>
+            <div class="key-effect">${doll.keyName ? (escapeHtml(doll.keyEffect) || '&nbsp;') : '&nbsp;'}</div>
+          </div>
 
           <div class="card-actions">
             <button class="button small primary" type="button" data-action="edit">구성 편집</button>
@@ -1918,12 +2069,21 @@
 
     function renderDollPortrait(doll) {
       const fullName = String(doll.name || '이름 없음');
+      const portraitZoom = Math.min(500, Math.max(-40, Number(doll.portraitScale) || 0));
+      const portraitScale = Math.max(.6, 1 + portraitZoom / 100);
+      const portraitOffsetX = Math.min(50, Math.max(-50, Number(doll.portraitOffsetX) || 0));
+      const portraitOffsetY = Math.min(50, Math.max(-50, Number(doll.portraitOffsetY) || 0));
+      const portraitStyle = [
+        `--portrait-user-scale:${portraitScale}`,
+        `--portrait-user-x:${portraitOffsetX}%`,
+        `--portrait-user-y:${portraitOffsetY}%`
+      ].join(';');
       const image = doll.imageUrl
-        ? `<img class="portrait-image" src="${escapeAttr(doll.imageUrl)}" alt="${escapeAttr(fullName)} 일러스트" loading="lazy" decoding="async" onload="this.classList.add('loaded'); this.parentElement.classList.add('has-image'); this.parentElement.classList.remove('empty')" onerror="this.parentElement.classList.remove('has-image'); this.parentElement.classList.add('empty'); this.remove()">`
+        ? `<span class="portrait-position"><span class="portrait-zoom"><img class="portrait-image" src="${escapeAttr(doll.imageUrl)}" alt="${escapeAttr(fullName)} 일러스트" loading="lazy" decoding="async" onload="this.classList.add('loaded'); const portrait=this.closest('.doll-portrait'); portrait?.classList.add('has-image'); portrait?.classList.remove('empty')" onerror="const portrait=this.closest('.doll-portrait'); portrait?.classList.remove('has-image'); portrait?.classList.add('empty'); this.closest('.portrait-position')?.remove()"></span></span>`
         : '';
 
       return `
-        <div class="doll-portrait${doll.imageUrl ? '' : ' empty'}" aria-label="${escapeAttr(fullName)} 일러스트">
+        <div class="doll-portrait${doll.imageUrl ? '' : ' empty'}" style="${portraitStyle}" aria-label="${escapeAttr(fullName)} 일러스트">
           <span class="portrait-fallback">${escapeHtml(fullName)}</span>
           ${image}
         </div>`;

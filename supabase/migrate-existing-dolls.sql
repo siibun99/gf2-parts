@@ -19,6 +19,9 @@ alter table public.dolls
   add column if not exists common_key text,
   add column if not exists common_key_effect text,
   add column if not exists image_url text,
+  add column if not exists portrait_scale numeric(6,2),
+  add column if not exists portrait_offset_x numeric(6,2),
+  add column if not exists portrait_offset_y numeric(6,2),
   add column if not exists display_order integer,
   add column if not exists is_active boolean,
   add column if not exists recommended_sets text[],
@@ -26,6 +29,33 @@ alter table public.dolls
   add column if not exists recommended_parts text[],
   add column if not exists created_at timestamptz,
   add column if not exists updated_at timestamptz;
+
+alter table public.dolls drop constraint if exists dolls_portrait_scale_range;
+alter table public.dolls drop constraint if exists dolls_portrait_offset_x_range;
+alter table public.dolls drop constraint if exists dolls_portrait_offset_y_range;
+
+-- v12는 portrait_scale을 0.60~1.60 배율로 저장했습니다.
+-- 열 기본값이 아직 250이 아닐 때만 v13 퍼센트 방식으로 변환합니다.
+do $$
+declare
+  current_default text;
+begin
+  select column_default
+    into current_default
+  from information_schema.columns
+  where table_schema = 'public'
+    and table_name = 'dolls'
+    and column_name = 'portrait_scale';
+
+  if current_default is null or current_default not like '%250%' then
+    update public.dolls
+    set
+      portrait_scale = round((coalesce(portrait_scale, 1.00) * 350 - 100)::numeric, 2),
+      portrait_offset_x = coalesce(portrait_offset_x, 0),
+      portrait_offset_y = coalesce(portrait_offset_y, 0) - 7;
+  end if;
+end
+$$;
 
 -- 기존 행의 비어 있는 값을 안전한 임시값으로 채웁니다.
 -- seed.sql을 실행하면 현재 인형 데이터로 다시 갱신됩니다.
@@ -39,6 +69,9 @@ set
   common_key = coalesce(common_key, ''),
   common_key_effect = coalesce(common_key_effect, ''),
   image_url = coalesce(image_url, ''),
+  portrait_scale = coalesce(portrait_scale, 250),
+  portrait_offset_x = coalesce(portrait_offset_x, 0),
+  portrait_offset_y = coalesce(portrait_offset_y, -7),
   display_order = coalesce(display_order, 0),
   is_active = coalesce(is_active, true),
   recommended_sets = coalesce(recommended_sets, '{}'::text[]),
@@ -63,6 +96,12 @@ alter table public.dolls
   alter column common_key_effect set not null,
   alter column image_url set default '',
   alter column image_url set not null,
+  alter column portrait_scale set default 250,
+  alter column portrait_scale set not null,
+  alter column portrait_offset_x set default 0,
+  alter column portrait_offset_x set not null,
+  alter column portrait_offset_y set default -7,
+  alter column portrait_offset_y set not null,
   alter column display_order set default 0,
   alter column display_order set not null,
   alter column is_active set default true,
@@ -77,6 +116,13 @@ alter table public.dolls
   alter column created_at set not null,
   alter column updated_at set default now(),
   alter column updated_at set not null;
+
+alter table public.dolls drop constraint if exists dolls_portrait_scale_range;
+alter table public.dolls add constraint dolls_portrait_scale_range check (portrait_scale between -40 and 500);
+alter table public.dolls drop constraint if exists dolls_portrait_offset_x_range;
+alter table public.dolls add constraint dolls_portrait_offset_x_range check (portrait_offset_x between -50 and 50);
+alter table public.dolls drop constraint if exists dolls_portrait_offset_y_range;
+alter table public.dolls add constraint dolls_portrait_offset_y_range check (portrait_offset_y between -50 and 50);
 
 -- 현재 앱이 요구하는 고유 식별 조건입니다.
 create unique index if not exists dolls_slug_unique_idx on public.dolls (slug);
