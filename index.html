@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>소녀전선2 장비 파밍 도우미</title>
+  <link rel="icon" type="image/png" href="assets/gf2-site-logo.png">
+  <link rel="apple-touch-icon" href="assets/gf2-site-logo.png">
+  <meta name="theme-color" content="#ff6600">
   <script>
     (() => {
       const key = 'gf2-ui-theme-v1';
@@ -656,8 +659,9 @@
 
     table {
       width: 100%;
-      min-width: 1060px;
+      min-width: 1260px;
       border-collapse: collapse;
+      table-layout: fixed;
       font-size: 12px;
     }
 
@@ -683,10 +687,14 @@
       position: sticky;
       left: 0;
       z-index: 1;
+      width: 210px;
       min-width: 210px;
       background: var(--panel-2);
       font-weight: 800;
     }
+
+    .reference-table col.option-col { width: 210px; }
+    .reference-table col.weapon-col { width: 150px; }
 
     th:first-child { z-index: 3; background: var(--panel-3); }
 
@@ -895,17 +903,7 @@
       box-shadow: 0 8px 28px rgba(0, 0, 0, .08);
     }
 
-    .app-header::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: -1px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent) 0 17%, transparent 17% 84%, var(--warning) 84% 100%);
-      opacity: .85;
-      pointer-events: none;
-    }
+    .app-header::after { content: none; }
 
     .header-inner { padding-top: 15px; }
 
@@ -1303,11 +1301,10 @@
       clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
     }
 
-    th {
-      background:
-        linear-gradient(90deg, var(--panel-sheen), transparent),
-        var(--panel-3);
-    }
+    th { background: var(--panel-3); }
+
+    :root[data-theme="light"] th { background: #e8eff3; }
+    :root[data-theme="light"] th:first-child { background: #e1eaef; }
 
     @media (max-width: 900px) {
       .card-grid { grid-template-columns: 1fr; }
@@ -1362,10 +1359,10 @@
 
     .gear-option-row {
       display: grid;
-      grid-template-columns: 49px minmax(0, 1fr);
-      align-items: start;
+      grid-template-columns: 49px minmax(0, 1fr) 28px;
+      align-items: center;
       gap: 7px;
-      min-height: 24px;
+      min-height: 29px;
     }
 
     .gear-option-row + .gear-option-row {
@@ -1374,7 +1371,6 @@
     }
 
     .gear-option-label {
-      padding-top: 3px;
       color: var(--muted);
       font-size: 10px;
       font-weight: 900;
@@ -1382,12 +1378,42 @@
       white-space: nowrap;
     }
 
+    .gear-done-toggle {
+      width: 28px;
+      height: 28px;
+      min-height: 28px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--faint);
+      border-radius: 4px;
+      background: transparent;
+      color: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 950;
+      transition: .15s ease;
+    }
+
+    .gear-done-toggle:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .gear-done-toggle.done {
+      border-color: var(--success);
+      background: var(--success);
+      color: var(--check-text);
+    }
+
     .key-box {
-      min-height: 62px;
+      min-height: 78px;
+      display: flex;
+      flex-direction: column;
     }
 
     .key-box .key-effect {
-      min-height: 1.55em;
+      min-height: 3.1em;
       margin-top: 3px;
     }
 
@@ -2025,7 +2051,7 @@
               </div>
 
               <div class="compact-config">
-                <div class="config-title"><span>세트 옵션</span><span>${config.setOptions.length}개</span></div>
+                <div class="config-title"><span>세트 옵션</span></div>
                 <div class="option-row">${renderOptionTags(config.setOptions, 'set')}</div>
               </div>
             </div>
@@ -2033,22 +2059,24 @@
 
           <div class="gear-options-panel" aria-label="총구와 파츠 옵션">
             ${[
-              ['총구', config.muzzle],
-              ['파츠 1', config.parts[0]],
-              ['파츠 2', config.parts[1]],
-              ['파츠 3', config.parts[2]]
-            ].map(([label, options]) => `
+              ['muzzle', '총구', config.muzzle],
+              ['p1', '파츠 1', config.parts[0]],
+              ['p2', '파츠 2', config.parts[1]],
+              ['p3', '파츠 3', config.parts[2]]
+            ].map(([slot, label, options]) => `
               <div class="gear-option-row">
                 <span class="gear-option-label">${label}</span>
                 <div class="option-row">${renderOptionTags(options)}</div>
+                <button
+                  class="gear-done-toggle ${config.done[slot] ? 'done' : ''}"
+                  type="button"
+                  data-action="toggle-done"
+                  data-slot="${slot}"
+                  aria-pressed="${config.done[slot] ? 'true' : 'false'}"
+                  aria-label="${label} 완료 체크"
+                  title="${label} 완료 체크"
+                >✓</button>
               </div>`).join('')}
-          </div>
-
-          <div class="piece-grid">
-            ${Object.entries(SLOT_LABELS).map(([slot, label]) => `
-              <button class="piece-button ${config.done[slot] ? 'done' : ''}" type="button" data-action="toggle-done" data-slot="${slot}">
-                <span>${label}</span><span class="checkmark">✓</span>
-              </button>`).join('')}
           </div>
 
           <label class="personal-note-field">
@@ -2057,7 +2085,7 @@
           </label>
           <div class="key-box${doll.keyName ? '' : ' empty'}">
             <strong>공용키 · ${doll.keyName ? escapeHtml(doll.keyName) : '미등록'}</strong>
-            <div class="key-effect">${doll.keyName ? (escapeHtml(doll.keyEffect) || '&nbsp;') : '&nbsp;'}</div>
+            <div class="key-effect">${doll.keyName ? (escapeHtml(doll.keyEffect) || '&nbsp;') : '&nbsp;<br>&nbsp;'}</div>
           </div>
 
           <div class="card-actions">
@@ -2092,6 +2120,39 @@
     function renderOptionTags(options, className = '') {
       if (!options?.length) return '<span class="tag">미선택</span>';
       return options.map(value => `<span class="option-tag ${className}">${escapeHtml(value)}</span>`).join('');
+    }
+
+    function updateFarmCardState(doll, config) {
+      const grid = document.getElementById('dollGrid');
+      const encodedName = encodeURIComponent(doll.name);
+      const card = [...grid.querySelectorAll('.doll-card')]
+        .find(item => item.dataset.name === encodedName);
+
+      renderSummary();
+
+      if (!card) return;
+
+      const remainsVisible = filteredDolls().some(item => item.name === doll.name);
+      if (!remainsVisible) {
+        card.remove();
+        if (!grid.querySelector('.doll-card')) {
+          grid.innerHTML = '<div class="empty-state">조건에 맞는 인형이 없습니다.</div>';
+        }
+        return;
+      }
+
+      card.classList.remove('status-none', 'status-tracked', 'status-unowned', 'status-completed');
+      card.classList.add(`status-${config.status}`);
+
+      card.querySelectorAll('[data-action="set-status"]').forEach(button => {
+        button.classList.toggle('active', button.dataset.status === config.status);
+      });
+
+      card.querySelectorAll('[data-action="toggle-done"]').forEach(button => {
+        const isDone = Boolean(config.done[button.dataset.slot]);
+        button.classList.toggle('done', isDone);
+        button.setAttribute('aria-pressed', String(isDone));
+      });
     }
 
     function handleCardClick(event) {
@@ -2137,7 +2198,7 @@
       }
 
       setConfig(doll.name, config);
-      renderFarm();
+      updateFarmCardState(doll, config);
     }
 
     function toggleDone(doll, slot) {
@@ -2145,7 +2206,7 @@
       config.done[slot] = !config.done[slot];
       config.status = Object.values(config.done).every(Boolean) ? 'completed' : 'tracked';
       setConfig(doll.name, config);
-      renderFarm();
+      updateFarmCardState(doll, config);
     }
 
     function resetDoll(doll) {
@@ -2393,7 +2454,11 @@
         <details class="reference-section" ${open ? 'open' : ''}>
           <summary>${escapeHtml(title)} · ${rows.length}개 조합</summary>
           <div class="table-wrap">
-            <table>
+            <table class="reference-table">
+              <colgroup>
+                <col class="option-col">
+                ${weapons.map(() => `<col class="weapon-col">`).join('')}
+              </colgroup>
               <thead>
                 <tr>
                   <th>옵션 조합</th>

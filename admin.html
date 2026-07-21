@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GF2 DB 관리자</title>
+  <link rel="icon" type="image/png" href="assets/gf2-site-logo.png">
+  <link rel="apple-touch-icon" href="assets/gf2-site-logo.png">
+  <meta name="theme-color" content="#ff6600">
   <script>
     (() => {
       const key = 'gf2-ui-theme-v1';
@@ -219,13 +222,28 @@
 
     .grid {
       display: grid;
-      grid-template-columns: minmax(360px, 470px) minmax(0, 1fr);
+      width: 100%;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       align-items: start;
       gap: 18px;
     }
 
-    .panel { padding: 17px; }
-    .editor-panel { position: sticky; top: 112px; }
+    .panel {
+      min-width: 0;
+      padding: 17px;
+    }
+
+    .editor-panel {
+      position: relative;
+      top: auto;
+    }
+
+    .list-panel {
+      display: flex;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
     .panel-head {
       display: flex;
@@ -417,10 +435,13 @@
 
     .list {
       display: grid;
+      flex: 1 1 auto;
+      min-height: 0;
       gap: 8px;
-      max-height: calc(100vh - 180px);
+      max-height: none;
       overflow: auto;
       padding-right: 3px;
+      align-content: start;
       scrollbar-gutter: stable;
     }
 
@@ -480,7 +501,23 @@
       word-break: keep-all;
     }
 
-    .thumb span { padding: 7px; }
+    .thumb > span:first-child { padding: 7px; }
+
+    .thumb-position,
+    .thumb-zoom {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .thumb-position {
+      transform: translate(var(--thumb-x, 0%), var(--thumb-y, 0%));
+    }
+
+    .thumb-zoom {
+      transform: scale(var(--thumb-scale, 1));
+      transform-origin: center top;
+    }
 
     .thumb img {
       position: absolute;
@@ -492,7 +529,7 @@
       background: transparent;
     }
 
-    .thumb.has-image span { display: none; }
+    .thumb.has-image > span:first-child { display: none; }
 
     .name {
       overflow: hidden;
@@ -539,7 +576,7 @@
 
     @media (max-width: 960px) {
       .grid { grid-template-columns: 1fr; }
-      .editor-panel { position: relative; top: auto; }
+      .list-panel { display: block; }
       .list { max-height: none; }
     }
 
@@ -651,6 +688,13 @@
       font-size: 11px;
     }
 
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .list-panel { height: auto !important; overflow: visible; }
+      .list { max-height: 720px; }
+    }
+
   </style>
 </head>
 <body>
@@ -692,7 +736,7 @@
 
           <div class="two">
             <label>인형 번호
-              <input id="slug" required readonly pattern="[a-z0-9-]+" placeholder="doll-064">
+              <input id="slug" required pattern="[a-z0-9-]+" placeholder="doll-064">
             </label>
             <label>표시 순서
               <input id="order" type="number" min="0">
@@ -771,7 +815,7 @@
         </form>
       </section>
 
-      <section class="panel">
+      <section class="panel list-panel">
         <div class="panel-head">
           <div>
             <p class="section-kicker">PUBLIC DOLL RECORDS</p>

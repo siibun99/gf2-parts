@@ -11,6 +11,8 @@ let dollSearchQuery = '';
 let editingImageUrl = '';
 let previewObjectUrl = '';
 let portraitDrag = null;
+let panelHeightFrame = 0;
+let editorPanelObserver = null;
 
 const $ = id => document.getElementById(id);
 
@@ -226,11 +228,38 @@ function endPortraitDrag(event) {
   portraitDrag = null;
 }
 
+function syncAdminPanelHeight() {
+  cancelAnimationFrame(panelHeightFrame);
+  panelHeightFrame = requestAnimationFrame(() => {
+    const app = $('adminApp');
+    const editorPanel = document.querySelector('.editor-panel');
+    const listPanel = document.querySelector('.list-panel');
+    if (!app || !editorPanel || !listPanel || app.hidden) return;
+
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      listPanel.style.height = '';
+      return;
+    }
+
+    const editorHeight = Math.ceil(editorPanel.getBoundingClientRect().height);
+    if (editorHeight > 0) listPanel.style.height = `${editorHeight}px`;
+  });
+}
+
+function observeAdminPanelHeight() {
+  const editorPanel = document.querySelector('.editor-panel');
+  if (!editorPanel || editorPanelObserver) return;
+  editorPanelObserver = new ResizeObserver(syncAdminPanelHeight);
+  editorPanelObserver.observe(editorPanel);
+  window.addEventListener('resize', syncAdminPanelHeight, { passive: true });
+}
+
 async function init() {
   applyTheme(document.documentElement.dataset.theme, false);
   bindEvents();
   setImagePreview('');
   setPortraitControls();
+  observeAdminPanelHeight();
 
   if (!cfg.supabaseUrl || !cfg.supabasePublishableKey || cfg.supabaseUrl.includes('YOUR_PROJECT')) {
     $('authState').textContent = 'config.js 설정이 필요합니다.';
@@ -328,6 +357,7 @@ async function applySession(nextSession) {
   $('notice').textContent = '인형 공용 DB와 일러스트를 관리합니다. 일반 이용자 개인 진행 데이터에는 접근하지 않습니다.';
   $('adminApp').hidden = false;
   await loadDolls();
+  syncAdminPanelHeight();
 }
 
 async function loadDolls() {
@@ -344,6 +374,7 @@ async function loadDolls() {
 
   dolls = data || [];
   renderDolls();
+  syncAdminPanelHeight();
   if (!$('id').value.trim()) setNewDollDefaults();
 }
 
@@ -435,10 +466,17 @@ function renderDolls() {
 
   list.innerHTML = visibleDolls.map(doll => {
     const src = imageSource(doll.image_url);
+    const portrait = normalizePortraitValues(doll);
+    const portraitScale = Math.max(.6, 1 + portrait.zoom / 100);
+    const portraitStyle = [
+      `--thumb-x:${portrait.x}%`,
+      `--thumb-y:${portrait.y}%`,
+      `--thumb-scale:${portraitScale}`
+    ].join(';');
     const visual = `
-      <div class="thumb">
+      <div class="thumb" style="${portraitStyle}">
         <span>${escapeHtml(doll.name)}</span>
-        ${src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" onload="this.parentElement.classList.add('has-image')" onerror="this.remove()">` : ''}
+        ${src ? `<span class="thumb-position"><span class="thumb-zoom"><img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" onload="this.closest('.thumb')?.classList.add('has-image')" onerror="this.closest('.thumb-position')?.remove()"></span></span>` : ''}
       </div>`;
     const statusClass = doll.is_active ? 'status-active' : 'status-inactive';
     return `
@@ -489,6 +527,11 @@ function handleListKeydown(event) {
 }
 
 function fillForm(doll) {
+  const pageScrollX = window.scrollX;
+  const pageScrollY = window.scrollY;
+  const list = $('dollList');
+  const listScrollTop = list?.scrollTop || 0;
+
   $('formTitle').textContent = `${doll.name} 수정`;
   $('id').value = doll.id;
   $('name').value = doll.name || '';
@@ -509,8 +552,13 @@ function fillForm(doll) {
   editingImageUrl = doll.image_url || '';
   setImagePreview(editingImageUrl);
   setPortraitControls(doll);
-  $('name').focus();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // 목록에서 선택한 위치를 그대로 유지한다. 폼 입력칸 포커스로 인한 자동 스크롤도 막는다.
+  try { $('name').focus({ preventScroll: true }); } catch (_) {}
+  requestAnimationFrame(() => {
+    if (list) list.scrollTop = listScrollTop;
+    window.scrollTo(pageScrollX, pageScrollY);
+  });
 }
 
 function clearForm() {
@@ -523,6 +571,7 @@ function clearForm() {
   clearPreviewObjectUrl();
   setImagePreview('');
   setPortraitControls();
+  observeAdminPanelHeight();
   setNewDollDefaults();
 }
 
