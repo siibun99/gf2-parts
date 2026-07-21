@@ -205,7 +205,7 @@
     .button.ghost { background: transparent; }
     .button.danger:hover { border-color: var(--danger); color: var(--danger); }
     .button.small { min-height: 33px; padding: 6px 10px; font-size: 12px; }
-    .theme-toggle { display: inline-flex; align-items: center; gap: 6px; }
+    .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; padding-inline: 8px; }
     .theme-toggle .theme-icon { width: 1.1em; text-align: center; }
 
     .tabs {
@@ -844,7 +844,7 @@
           <p class="subtitle" id="sourceStatus">공용 데이터를 불러오는 중입니다…</p>
         </div>
         <div class="header-actions">
-          <button class="button ghost theme-toggle" id="themeToggleButton" type="button">
+          <button class="button ghost theme-toggle" id="themeToggleButton" type="button" aria-label="밝은 화면으로 전환" title="밝은 화면으로 전환">
             <span class="theme-icon" id="themeToggleIcon" aria-hidden="true">☀</span>
           </button>
           <button class="button ghost" id="exportButton" type="button">백업 내보내기</button>
@@ -993,7 +993,6 @@
       const next = theme === 'light' ? 'light' : 'dark';
       document.documentElement.dataset.theme = next;
       const icon = document.getElementById('themeToggleIcon');
-      const text = document.getElementById('themeToggleText');
       const button = document.getElementById('themeToggleButton');
       if (icon) icon.textContent = next === 'dark' ? '☀' : '🌙';
       if (button) {
