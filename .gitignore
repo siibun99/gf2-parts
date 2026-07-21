@@ -1,0 +1,12 @@
+# Local source/reference images are not deployed.
+image/
+
+# Temporary update packages and notes.
+*.zip
+UPDATE-*.md
+APPLY-UPDATE*.md
+
+# OS/editor files.
+.DS_Store
+Thumbs.db
+.vscode/

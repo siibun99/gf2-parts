@@ -2,5 +2,5 @@
 insert into public.app_admins (user_id)
 select id
 from auth.users
-where email = 'siibun99@naver.com'
+where email = 'your-email@example.com'
 on conflict (user_id) do nothing;
