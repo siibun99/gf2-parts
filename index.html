@@ -846,7 +846,6 @@
         <div class="header-actions">
           <button class="button ghost theme-toggle" id="themeToggleButton" type="button">
             <span class="theme-icon" id="themeToggleIcon" aria-hidden="true">☀</span>
-            <span id="themeToggleText">밝은 화면</span>
           </button>
           <button class="button ghost" id="exportButton" type="button">백업 내보내기</button>
           <label class="button ghost" for="importInput">백업 가져오기</label>
@@ -997,7 +996,6 @@
       const text = document.getElementById('themeToggleText');
       const button = document.getElementById('themeToggleButton');
       if (icon) icon.textContent = next === 'dark' ? '☀' : '🌙';
-      if (text) text.textContent = next === 'dark' ? '밝은 화면' : '어두운 화면';
       if (button) {
         button.setAttribute('aria-label', next === 'dark' ? '밝은 화면으로 전환' : '어두운 화면으로 전환');
         button.setAttribute('title', next === 'dark' ? '밝은 화면으로 전환' : '어두운 화면으로 전환');
