@@ -2,59 +2,678 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GF2 DB 관리자</title>
   <script>
     (() => {
+      const key = 'gf2-ui-theme-v1';
       try {
-        const saved = localStorage.getItem('gf2-ui-theme-v1');
-        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
+        const saved = localStorage.getItem(key);
+        const theme = saved === 'light' || saved === 'dark'
           ? saved
           : (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-      } catch (_) { document.documentElement.dataset.theme = 'dark'; }
+        document.documentElement.dataset.theme = theme;
+      } catch (_) {
+        document.documentElement.dataset.theme = 'dark';
+      }
     })();
   </script>
   <style>
-    :root{color-scheme:dark;--bg:#0d1117;--panel:#151b23;--panel2:#1b2430;--field:#0f151c;--row:#111820;--thumb:#202b37;--line:#2b3948;--text:#edf3f8;--muted:#93a4b7;--accent:#58d6c8;--danger:#ff7a7a;--success:#72dd9c;--header:rgba(13,17,23,.95);--primary-text:#08201d;--toast-text:#08201d} :root[data-theme="light"]{color-scheme:light;--bg:#eef3f6;--panel:#fff;--panel2:#f4f7f9;--field:#fff;--row:#f7fafb;--thumb:#e8eff3;--line:#cbd7de;--text:#17262d;--muted:#526871;--accent:#087f75;--danger:#c24141;--success:#238a52;--header:rgba(248,251,252,.95);--primary-text:#fff;--toast-text:#08201d}
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Pretendard,"Noto Sans KR",system-ui,sans-serif}
-    header{position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);background:var(--header);backdrop-filter:blur(12px)}
-    .bar,.wrap{width:min(1280px,100%);margin:auto;padding:16px 20px}.bar{display:flex;align-items:center;justify-content:space-between;gap:12px}.bar h1{font-size:23px;margin:0}.actions{display:flex;gap:8px;flex-wrap:wrap}
-    button,.button,input,textarea,select{font:inherit} button,.button{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:9px 13px;cursor:pointer;text-decoration:none;font-weight:750}.primary{background:var(--accent);border-color:var(--accent);color:var(--primary-text)}.danger{color:var(--danger)}
-    .notice{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);margin-bottom:16px}.grid{display:grid;grid-template-columns:minmax(330px,430px) 1fr;gap:18px}.panel{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px}.panel h2{margin:0 0 13px;font-size:19px}
-    label{display:grid;gap:5px;margin:0 0 11px;color:var(--muted);font-size:13px;font-weight:700} input,textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);padding:9px 10px;outline:none} input:focus,textarea:focus,select:focus{border-color:var(--accent)} textarea{min-height:76px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-    .list{display:grid;gap:8px;max-height:calc(100vh - 160px);overflow:auto}.row{display:grid;grid-template-columns:64px 1fr auto;gap:11px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--row)}.thumb{width:64px;height:78px;border-radius:7px;background:var(--thumb);object-fit:contain}.name{font-weight:850}.meta{font-size:12px;color:var(--muted)}.row-actions{display:flex;gap:5px}.row-actions button{padding:6px 8px;font-size:12px}.empty{padding:40px;text-align:center;color:var(--muted)}
-    #toast{position:fixed;right:20px;bottom:20px;opacity:0;transform:translateY(10px);transition:.2s;padding:11px 14px;border-radius:9px;background:#dffffb;color:var(--toast-text);font-weight:800;pointer-events:none}#toast.show{opacity:1;transform:none}#toast.error{background:#ffd9d9;color:#471010}
-    [hidden]{display:none!important}@media(max-width:850px){.grid{grid-template-columns:1fr}.list{max-height:none}.two{grid-template-columns:1fr}.bar{align-items:flex-start}}
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #151b23;
+      --panel-2: #1b2430;
+      --panel-3: #222d3a;
+      --field: #0f151c;
+      --line: #2b3948;
+      --text: #edf3f8;
+      --muted: #93a4b7;
+      --faint: #65778b;
+      --accent: #58d6c8;
+      --accent-soft: rgba(88, 214, 200, .14);
+      --warning: #ffbd69;
+      --danger: #ff7a7a;
+      --success: #72dd9c;
+      --body-glow-1: rgba(42, 113, 111, .22);
+      --body-glow-2: rgba(66, 83, 130, .18);
+      --header-bg: rgba(13, 17, 23, .91);
+      --header-line: rgba(43, 57, 72, .85);
+      --primary-contrast: #08201d;
+      --row-bg: rgba(17, 24, 32, .84);
+      --toast-bg: #202b37;
+      --shadow: 0 16px 44px rgba(0, 0, 0, .24);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #eef3f6;
+      --panel: #ffffff;
+      --panel-2: #f4f7f9;
+      --panel-3: #e8eff3;
+      --field: #ffffff;
+      --line: #cbd7de;
+      --text: #17262d;
+      --muted: #526871;
+      --faint: #748790;
+      --accent: #087f75;
+      --accent-soft: rgba(8, 127, 117, .12);
+      --warning: #a65b00;
+      --danger: #c24141;
+      --success: #238a52;
+      --body-glow-1: rgba(31, 151, 140, .15);
+      --body-glow-2: rgba(83, 108, 181, .12);
+      --header-bg: rgba(248, 251, 252, .94);
+      --header-line: rgba(190, 205, 213, .92);
+      --primary-contrast: #ffffff;
+      --row-bg: rgba(247, 250, 251, .92);
+      --toast-bg: #ffffff;
+      --shadow: 0 16px 40px rgba(41, 65, 76, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(900px 500px at 8% -8%, var(--body-glow-1), transparent 65%),
+        radial-gradient(800px 440px at 100% 0, var(--body-glow-2), transparent 62%),
+        var(--bg);
+      color: var(--text);
+      font-family: Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; }
+    [hidden] { display: none !important; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      border-bottom: 1px solid var(--header-line);
+      background: var(--header-bg);
+      backdrop-filter: blur(14px);
+    }
+
+    .header-inner {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 18px 22px 14px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .18em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 4vw, 38px);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .header-actions,
+    .form-actions,
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .header-actions { justify-content: flex-end; }
+
+    button, .button {
+      min-height: 39px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+      transition: .15s ease;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    button:hover, .button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--primary-contrast);
+    }
+
+    .danger { color: var(--danger); }
+    .danger:hover { border-color: var(--danger); }
+
+    .theme-toggle {
+      display: inline-flex;
+      width: 40px;
+      padding-inline: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-icon { width: 1.1em; text-align: center; }
+
+    main {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 20px 22px 34px;
+    }
+
+    .notice,
+    .panel {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      box-shadow: var(--shadow);
+    }
+
+    .notice::after,
+    .panel::after {
+      content: "";
+      position: absolute;
+      top: -1px;
+      right: 14px;
+      width: 15px;
+      height: 3px;
+      background: var(--warning);
+      pointer-events: none;
+    }
+
+    .notice {
+      margin-bottom: 16px;
+      padding: 13px 15px;
+      color: var(--muted);
+      box-shadow: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(360px, 470px) minmax(0, 1fr);
+      align-items: start;
+      gap: 18px;
+    }
+
+    .panel { padding: 17px; }
+    .editor-panel { position: sticky; top: 112px; }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 11px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-kicker {
+      margin: 0 0 2px;
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .17em;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: -.02em;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      margin: 0 0 11px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      outline: none;
+      background: var(--field);
+      color: var(--text);
+      padding: 10px 11px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    input[readonly] {
+      background:
+        linear-gradient(135deg, var(--accent-soft), transparent 72%),
+        var(--panel-3);
+      color: var(--muted);
+      cursor: default;
+    }
+
+    .field-help {
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    textarea { min-height: 76px; resize: vertical; }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .check-row {
+      display: flex;
+      grid-template-columns: none;
+      align-items: center;
+      gap: 9px;
+      min-height: 38px;
+      margin-bottom: 7px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+    }
+
+    .check-row input { width: auto; margin: 0; accent-color: var(--accent); }
+
+    .image-field {
+      display: grid;
+      grid-template-columns: 104px minmax(0, 1fr);
+      align-items: stretch;
+      gap: 11px;
+      margin: 2px 0 12px;
+    }
+
+    .image-preview {
+      position: relative;
+      min-height: 132px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(145deg, var(--accent-soft), transparent 62%),
+        var(--panel-3);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-align: center;
+    }
+
+    .image-preview img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center top;
+      background: transparent;
+    }
+
+    .image-preview.has-image .preview-fallback { display: none; }
+
+    .image-controls {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 9px;
+    }
+
+    .image-controls label { margin: 0; }
+    .image-state { color: var(--faint); font-size: 11px; }
+
+    .form-actions {
+      justify-content: flex-end;
+      margin-top: 14px;
+      padding-top: 13px;
+      border-top: 1px solid var(--line);
+    }
+
+    .list-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 11px;
+    }
+
+    .list-search {
+      position: relative;
+      display: block;
+      margin: 0;
+    }
+
+    .list-search::before {
+      content: "⌕";
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      z-index: 1;
+      color: var(--accent);
+      font-size: 17px;
+      line-height: 1;
+      transform: translateY(-52%);
+      pointer-events: none;
+    }
+
+    .list-search input {
+      padding-left: 36px;
+    }
+
+    .search-clear {
+      min-width: 74px;
+      white-space: nowrap;
+    }
+
+    .search-clear:disabled {
+      opacity: .45;
+      cursor: default;
+      transform: none;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+      max-height: calc(100vh - 180px);
+      overflow: auto;
+      padding-right: 3px;
+      scrollbar-gutter: stable;
+    }
+
+    .row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--row-bg);
+      cursor: pointer;
+      transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+    }
+
+    .row:hover {
+      border-color: color-mix(in srgb, var(--accent) 62%, var(--line));
+      transform: translateY(-1px);
+    }
+
+    .row:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .row::before {
+      content: "";
+      position: absolute;
+      left: -1px;
+      top: 13px;
+      width: 3px;
+      height: 28px;
+      background: var(--accent);
+    }
+
+    .thumb {
+      position: relative;
+      width: 76px;
+      height: 94px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(145deg, var(--accent-soft), transparent 65%),
+        var(--panel-3);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+      line-height: 1.25;
+      text-align: center;
+      word-break: keep-all;
+    }
+
+    .thumb span { padding: 7px; }
+
+    .thumb img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center top;
+      background: transparent;
+    }
+
+    .thumb.has-image span { display: none; }
+
+    .name {
+      overflow: hidden;
+      font-size: 16px;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-actions { justify-content: flex-end; }
+    .row-actions button { min-height: 32px; padding: 6px 9px; font-size: 11px; cursor: pointer; }
+
+    .status-active { color: var(--success); }
+    .status-inactive { color: var(--warning); }
+
+    .empty {
+      padding: 48px 20px;
+      border: 1px dashed var(--line);
+      color: var(--muted);
+      text-align: center;
+    }
+
+    #toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 50;
+      max-width: min(420px, calc(100vw - 40px));
+      opacity: 0;
+      transform: translateY(10px);
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--toast-bg);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      font-weight: 800;
+      pointer-events: none;
+      transition: .2s;
+    }
+
+    #toast.show { opacity: 1; transform: none; }
+    #toast.error { border-color: var(--danger); color: var(--danger); }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .editor-panel { position: relative; top: auto; }
+      .list { max-height: none; }
+    }
+
+    @media (max-width: 640px) {
+      .header-inner, main { padding-left: 13px; padding-right: 13px; }
+      .title-row { display: block; }
+      .header-actions { justify-content: flex-start; margin-top: 13px; }
+      .two { grid-template-columns: 1fr; }
+      .image-field { grid-template-columns: 88px minmax(0, 1fr); }
+      .image-preview { min-height: 116px; }
+      .row { grid-template-columns: 62px minmax(0, 1fr); }
+      .thumb { width: 62px; height: 78px; }
+      .row-actions { grid-column: 1 / -1; }
+      .row-actions button { flex: 1; }
+      .list-toolbar { grid-template-columns: 1fr; }
+      .search-clear { width: 100%; }
+    }
   </style>
 </head>
 <body>
-<header><div class="bar"><div><h1>GF2 DB 관리자</h1><div id="authState" class="meta">권한 확인 중…</div></div><div class="actions"><button id="themeToggleButton" type="button">☀ 밝은 화면</button><a class="button" href="index.html">사용자 화면</a><button id="loginButton" class="primary">이메일 로그인</button></div></div></header>
-<main class="wrap">
-  <div id="notice" class="notice">관리자 계정으로 로그인해야 인형 DB와 일러스트를 수정할 수 있습니다.</div>
-  <div id="adminApp" class="grid" hidden>
-    <section class="panel">
-      <h2 id="formTitle">새 인형 추가</h2>
-      <form id="dollForm">
-        <input id="id" type="hidden">
-        <div class="two"><label>인형 이름<input id="name" required maxlength="80"></label><label>고정 슬러그<input id="slug" required pattern="[a-z0-9-]+" placeholder="doll-064"></label></div>
-        <div class="two"><label>무기 종류<input id="weapon" required list="weaponList"></label><label>속성<input id="attribute" list="attrList"></label></div>
-        <datalist id="weaponList"><option>돌격소총</option><option>산탄총</option><option>기관단총</option><option>기관총</option><option>저격소총</option><option>권총</option><option>도검</option></datalist>
-        <datalist id="attrList"><option>물리</option><option>연소</option><option>빙결</option><option>전도</option><option>산성</option><option>탁류</option><option>공진</option></datalist>
-        <label>추천 세트 옵션 · 쉼표 구분<input id="sets" placeholder="강산 증폭, 정점 소환"></label>
-        <label>총구 옵션 · 최대 4개<input id="muzzle" placeholder="공격, 공격 보너스, 치명타, 치명타 피해"></label>
-        <label>파츠 옵션 · 최대 3개<input id="parts" placeholder="공격, 공격 보너스, 치명타"></label>
-        <label>기본 비고<textarea id="note" maxlength="1000"></textarea></label>
-        <div class="two"><label>공용키<input id="commonKey"></label><label>표시 순서<input id="order" type="number" min="0" value="999"></label></div>
-        <label>공용키 효과<textarea id="commonEffect" maxlength="2000"></textarea></label>
-        <label>인형 일러스트<input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        <label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="removeImage" type="checkbox" style="width:auto">현재 일러스트 제거</label>
-        <label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="active" type="checkbox" checked style="width:auto">사이트에 표시</label>
-        <div class="form-actions"><button id="clearButton" type="button">새로 작성</button><button class="primary" type="submit">저장</button></div>
-      </form>
-    </section>
-    <section class="panel"><h2>인형 목록 <span id="count" class="meta"></span></h2><div id="dollList" class="list"></div></section>
-  </div>
-</main>
-<div id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="admin.js"></script>
-</body></html>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="title-row">
+        <div>
+          <p class="eyebrow">GIRLS' FRONTLINE 2 · ADMIN CONSOLE</p>
+          <h1>GF2 DB 관리자</h1>
+          <p id="authState" class="subtitle">권한 확인 중…</p>
+        </div>
+        <div class="header-actions">
+          <button id="themeToggleButton" class="theme-toggle" type="button" aria-label="화면 테마 전환" title="화면 테마 전환">
+            <span id="themeToggleIcon" class="theme-icon" aria-hidden="true">☀</span>
+          </button>
+          <a class="button" href="index.html">사용자 화면</a>
+          <button id="loginButton" class="primary" type="button">이메일 로그인</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="notice" class="notice">관리자 계정으로 로그인해야 인형 DB와 일러스트를 수정할 수 있습니다.</div>
+
+    <div id="adminApp" class="grid" hidden>
+      <section class="panel editor-panel">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker">DOLL DATABASE EDITOR</p>
+            <h2 id="formTitle">새 인형 추가</h2>
+          </div>
+        </div>
+
+        <form id="dollForm">
+          <input id="id" type="hidden">
+
+          <div class="two">
+            <label>인형 이름<input id="name" required maxlength="80"></label>
+            <label>고정 슬러그
+              <input id="slug" required readonly pattern="[a-z0-9-]+" placeholder="doll-064" aria-describedby="slugHelp">
+              <span id="slugHelp" class="field-help">새 인형 작성 시 기존 마지막 번호의 다음 값이 자동 입력됩니다.</span>
+            </label>
+          </div>
+
+          <div class="two">
+            <label>무기 종류<input id="weapon" required list="weaponList"></label>
+            <label>속성<input id="attribute" list="attrList"></label>
+          </div>
+
+          <datalist id="weaponList">
+            <option>돌격소총</option><option>산탄총</option><option>기관단총</option><option>기관총</option>
+            <option>저격소총</option><option>권총</option><option>도검</option>
+          </datalist>
+          <datalist id="attrList">
+            <option>물리</option><option>연소</option><option>빙결</option><option>전도</option>
+            <option>산성</option><option>탁류</option><option>공진</option>
+          </datalist>
+
+          <label>추천 세트 옵션 · 쉼표 구분<input id="sets" placeholder="강산 증폭, 정점 소환"></label>
+          <label>총구 옵션 · 최대 4개<input id="muzzle" placeholder="공격, 공격 보너스, 치명타, 치명타 피해"></label>
+          <label>파츠 옵션 · 최대 3개<input id="parts" placeholder="공격, 공격 보너스, 치명타"></label>
+          <label>기본 비고<textarea id="note" maxlength="1000"></textarea></label>
+
+          <div class="two">
+            <label>공용키<input id="commonKey"></label>
+            <label>표시 순서
+              <input id="order" type="number" min="0" aria-describedby="orderHelp">
+              <span id="orderHelp" class="field-help">현재 표시 순서 최댓값 + 1로 자동 입력되며 필요하면 수정할 수 있습니다.</span>
+            </label>
+          </div>
+
+          <label>공용키 효과<textarea id="commonEffect" maxlength="2000"></textarea></label>
+
+          <div class="image-field">
+            <div id="imagePreview" class="image-preview">
+              <span id="imagePreviewFallback" class="preview-fallback">일러스트<br>없음</span>
+              <img id="imagePreviewImage" alt="선택한 인형 일러스트 미리보기" hidden>
+            </div>
+            <div class="image-controls">
+              <label>인형 일러스트<input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+              <div id="imageStateText" class="image-state">PNG, JPEG, WebP · 최대 5MB</div>
+            </div>
+          </div>
+
+          <label class="check-row"><input id="removeImage" type="checkbox">현재 일러스트 제거</label>
+          <label class="check-row"><input id="active" type="checkbox" checked>사이트에 표시</label>
+
+          <div class="form-actions">
+            <button id="clearButton" type="button">새로 작성</button>
+            <button class="primary" type="submit">저장</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker">PUBLIC DOLL RECORDS</p>
+            <h2>인형 목록 <span id="count" class="meta"></span></h2>
+          </div>
+        </div>
+        <div class="list-toolbar">
+          <label class="list-search" for="dollSearch">
+            <input id="dollSearch" type="search" placeholder="이름, 슬러그, 무기, 속성 검색" autocomplete="off">
+          </label>
+          <button id="clearSearchButton" class="search-clear" type="button" disabled>검색 초기화</button>
+        </div>
+        <div id="dollList" class="list"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

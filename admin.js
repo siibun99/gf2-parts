@@ -1,11 +1,13 @@
 'use strict';
 
 const cfg = window.GF2_CONFIG || {};
+const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
 let db = null;
 let session = null;
 let dolls = [];
+let dollSearchQuery = '';
 let editingImageUrl = '';
-const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
+let previewObjectUrl = '';
 
 const $ = id => document.getElementById(id);
 
@@ -41,8 +43,92 @@ function imageSource(url) {
   return new URL(url.replace(/^\//, ''), location.href).href;
 }
 
+function applyTheme(theme, persist = true) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  const icon = $('themeToggleIcon');
+  const button = $('themeToggleButton');
+
+  if (icon) icon.textContent = next === 'dark' ? '☀' : '🌙';
+  if (button) {
+    const label = next === 'dark' ? '밝은 화면으로 전환' : '어두운 화면으로 전환';
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+  }
+
+  if (persist) {
+    try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch (_) {}
+  }
+}
+
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+}
+
+function clearPreviewObjectUrl() {
+  if (!previewObjectUrl) return;
+  URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = '';
+}
+
+function setImagePreview(url = '', stateText = '') {
+  const preview = $('imagePreview');
+  const image = $('imagePreviewImage');
+  const fallback = $('imagePreviewFallback');
+  const resolved = imageSource(url);
+
+  if (!preview || !image || !fallback) return;
+
+  if (!resolved) {
+    image.hidden = true;
+    image.removeAttribute('src');
+    preview.classList.remove('has-image');
+    fallback.hidden = false;
+    $('imageStateText').textContent = stateText || 'PNG, JPEG, WebP · 최대 5MB';
+    return;
+  }
+
+  image.hidden = false;
+  image.src = resolved;
+  image.onload = () => {
+    preview.classList.add('has-image');
+    fallback.hidden = true;
+  };
+  image.onerror = () => {
+    image.hidden = true;
+    preview.classList.remove('has-image');
+    fallback.hidden = false;
+  };
+  $('imageStateText').textContent = stateText || '현재 등록된 일러스트';
+}
+
+function handleImageSelection() {
+  clearPreviewObjectUrl();
+  const file = $('image').files?.[0];
+  if (!file) {
+    setImagePreview($('removeImage').checked ? '' : editingImageUrl);
+    return;
+  }
+
+  $('removeImage').checked = false;
+  previewObjectUrl = URL.createObjectURL(file);
+  setImagePreview(previewObjectUrl, `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+}
+
+function handleRemoveImageToggle() {
+  if ($('removeImage').checked) {
+    $('image').value = '';
+    clearPreviewObjectUrl();
+    setImagePreview('', '저장하면 현재 일러스트가 제거됩니다.');
+  } else {
+    setImagePreview(editingImageUrl);
+  }
+}
+
 async function init() {
+  applyTheme(document.documentElement.dataset.theme, false);
   bindEvents();
+  setImagePreview('');
 
   if (!cfg.supabaseUrl || !cfg.supabasePublishableKey || cfg.supabaseUrl.includes('YOUR_PROJECT')) {
     $('authState').textContent = 'config.js 설정이 필요합니다.';
@@ -60,23 +146,15 @@ async function init() {
 
 function bindEvents() {
   $('themeToggleButton').addEventListener('click', toggleTheme);
-  updateThemeButton();
   $('loginButton').addEventListener('click', handleLogin);
   $('clearButton').addEventListener('click', clearForm);
   $('dollForm').addEventListener('submit', saveDoll);
   $('dollList').addEventListener('click', handleListClick);
-}
-
-function updateThemeButton() {
-  const light = document.documentElement.dataset.theme === 'light';
-  $('themeToggleButton').textContent = light ? '🌙 어두운 화면' : '☀ 밝은 화면';
-}
-
-function toggleTheme() {
-  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  document.documentElement.dataset.theme = next;
-  try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch (_) {}
-  updateThemeButton();
+  $('dollList').addEventListener('keydown', handleListKeydown);
+  $('dollSearch').addEventListener('input', handleDollSearch);
+  $('clearSearchButton').addEventListener('click', clearDollSearch);
+  $('image').addEventListener('change', handleImageSelection);
+  $('removeImage').addEventListener('change', handleRemoveImageToggle);
 }
 
 async function handleLogin() {
@@ -144,7 +222,7 @@ async function loadDolls() {
     .from('dolls')
     .select('*')
     .order('display_order', { ascending: false })
-    .order('name', { ascending: false });
+    .order('name', { ascending: true });
 
   if (error) {
     toast(error.message || '인형 목록을 불러오지 못했습니다.', true);
@@ -153,10 +231,83 @@ async function loadDolls() {
 
   dolls = data || [];
   renderDolls();
+  if (!$('id').value.trim()) setNewDollDefaults();
+}
+
+function normalizeSearch(value) {
+  return String(value || '').trim().toLocaleLowerCase('ko-KR');
+}
+
+function getFilteredDolls() {
+  const query = normalizeSearch(dollSearchQuery);
+  if (!query) return dolls;
+
+  return dolls.filter(doll => normalizeSearch([
+    doll.name,
+    doll.slug,
+    doll.weapon_type,
+    doll.attribute,
+    doll.common_key
+  ].filter(Boolean).join(' ')).includes(query));
+}
+
+function handleDollSearch(event) {
+  dollSearchQuery = event.target.value;
+  renderDolls();
+}
+
+function clearDollSearch() {
+  dollSearchQuery = '';
+  $('dollSearch').value = '';
+  renderDolls();
+  $('dollSearch').focus();
+}
+
+function getNextDollDefaults() {
+  const slugCandidates = dolls
+    .map(doll => String(doll.slug || '').trim().match(/^(.*?)(\d+)$/))
+    .filter(Boolean)
+    .map(match => ({
+      prefix: match[1] || 'doll-',
+      digits: match[2],
+      number: Number(match[2])
+    }))
+    .filter(item => Number.isFinite(item.number));
+
+  const latestSlug = slugCandidates.reduce((latest, item) => (
+    !latest || item.number > latest.number ? item : latest
+  ), null);
+
+  const nextSlugNumber = (latestSlug?.number || 0) + 1;
+  const slugPrefix = latestSlug?.prefix || 'doll-';
+  const slugWidth = Math.max(latestSlug?.digits.length || 3, 3);
+
+  const maxOrder = dolls.reduce((max, doll) => {
+    const order = Number(doll.display_order);
+    return Number.isFinite(order) ? Math.max(max, order) : max;
+  }, 0);
+
+  return {
+    slug: `${slugPrefix}${String(nextSlugNumber).padStart(slugWidth, '0')}`,
+    order: maxOrder + 1
+  };
+}
+
+function setNewDollDefaults() {
+  if ($('id').value.trim()) return;
+  const next = getNextDollDefaults();
+  $('slug').value = next.slug;
+  $('order').value = next.order;
 }
 
 function renderDolls() {
-  $('count').textContent = `${dolls.length}명`;
+  const visibleDolls = getFilteredDolls();
+  const hasQuery = Boolean(normalizeSearch(dollSearchQuery));
+  $('count').textContent = hasQuery
+    ? `${visibleDolls.length}/${dolls.length}명`
+    : `${dolls.length}명`;
+  $('clearSearchButton').disabled = !hasQuery;
+
   const list = $('dollList');
 
   if (!dolls.length) {
@@ -164,18 +315,26 @@ function renderDolls() {
     return;
   }
 
-  list.innerHTML = dolls.map(doll => {
+  if (!visibleDolls.length) {
+    list.innerHTML = '<div class="empty">검색 조건에 맞는 인형이 없습니다.</div>';
+    return;
+  }
+
+  list.innerHTML = visibleDolls.map(doll => {
     const src = imageSource(doll.image_url);
-    const image = src
-      ? `<img class="thumb" src="${escapeHtml(src)}" alt="" onerror="this.style.visibility='hidden'">`
-      : '<div class="thumb"></div>';
+    const visual = `
+      <div class="thumb">
+        <span>${escapeHtml(doll.name)}</span>
+        ${src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" onload="this.parentElement.classList.add('has-image')" onerror="this.remove()">` : ''}
+      </div>`;
+    const statusClass = doll.is_active ? 'status-active' : 'status-inactive';
     return `
-      <article class="row" data-id="${escapeHtml(doll.id)}">
-        ${image}
+      <article class="row" data-id="${escapeHtml(doll.id)}" tabindex="0" aria-label="${escapeHtml(doll.name)} 수정 정보 열기" title="카드를 클릭하여 수정">
+        ${visual}
         <div>
           <div class="name">${escapeHtml(doll.name)}</div>
-          <div class="meta">${escapeHtml(doll.weapon_type)} · ${escapeHtml(doll.attribute || '속성 없음')} · 순서 ${Number(doll.display_order || 0)}</div>
-          <div class="meta">${doll.is_active ? '사이트 표시 중' : '비활성'}</div>
+          <div class="meta">${escapeHtml(doll.slug || '')} · ${escapeHtml(doll.weapon_type)} · ${escapeHtml(doll.attribute || '속성 없음')} · 순서 ${Number(doll.display_order || 0)}</div>
+          <div class="meta ${statusClass}">${doll.is_active ? '사이트 표시 중' : '비활성'}</div>
         </div>
         <div class="row-actions">
           <button type="button" data-action="edit">수정</button>
@@ -186,15 +345,34 @@ function renderDolls() {
 }
 
 function handleListClick(event) {
-  const button = event.target.closest('[data-action]');
   const row = event.target.closest('[data-id]');
-  if (!button || !row) return;
+  if (!row) return;
 
   const doll = dolls.find(item => item.id === row.dataset.id);
   if (!doll) return;
 
-  if (button.dataset.action === 'edit') fillForm(doll);
-  if (button.dataset.action === 'delete') deleteDoll(doll);
+  const actionButton = event.target.closest('[data-action]');
+  if (actionButton?.dataset.action === 'delete') {
+    deleteDoll(doll);
+    return;
+  }
+
+  // 수정 버튼뿐 아니라 카드의 썸네일, 이름, 빈 공간을 눌러도 폼을 연다.
+  fillForm(doll);
+}
+
+function handleListKeydown(event) {
+  if (event.target.closest('button')) return;
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+
+  const row = event.target.closest('[data-id]');
+  if (!row) return;
+
+  const doll = dolls.find(item => item.id === row.dataset.id);
+  if (!doll) return;
+
+  event.preventDefault();
+  fillForm(doll);
 }
 
 function fillForm(doll) {
@@ -212,9 +390,11 @@ function fillForm(doll) {
   $('commonEffect').value = doll.common_key_effect || '';
   $('order').value = Number(doll.display_order || 0);
   $('active').checked = Boolean(doll.is_active);
-  $('image').value = '';
   $('removeImage').checked = false;
+  $('image').value = '';
+  clearPreviewObjectUrl();
   editingImageUrl = doll.image_url || '';
+  setImagePreview(editingImageUrl);
   $('name').focus();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -222,11 +402,13 @@ function fillForm(doll) {
 function clearForm() {
   $('dollForm').reset();
   $('id').value = '';
-  $('order').value = 999;
   $('active').checked = true;
   $('removeImage').checked = false;
   $('formTitle').textContent = '새 인형 추가';
   editingImageUrl = '';
+  clearPreviewObjectUrl();
+  setImagePreview('');
+  setNewDollDefaults();
 }
 
 async function uploadImage(file, slug) {
@@ -260,8 +442,10 @@ async function saveDoll(event) {
   }
 
   try {
+    const file = $('image').files?.[0];
     let imageUrl = $('removeImage').checked ? '' : editingImageUrl;
-    if ($('image').files?.[0]) imageUrl = await uploadImage($('image').files[0], slug);
+    if (file) imageUrl = await uploadImage(file, slug);
+
     const payload = {
       slug,
       name,
@@ -274,7 +458,7 @@ async function saveDoll(event) {
       common_key: $('commonKey').value.trim(),
       common_key_effect: $('commonEffect').value.trim(),
       display_order: Number($('order').value || 0),
-      image_url: imageUrl || '',
+      image_url: imageUrl,
       is_active: $('active').checked
     };
 
@@ -285,8 +469,8 @@ async function saveDoll(event) {
     if (error) throw error;
 
     toast(id ? '인형 정보를 수정했습니다.' : '새 인형을 추가했습니다.');
-    clearForm();
     await loadDolls();
+    clearForm();
   } catch (error) {
     console.error(error);
     toast(error.message || '저장하지 못했습니다.', true);
