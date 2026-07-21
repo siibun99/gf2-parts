@@ -11,7 +11,7 @@ Google Apps Script와 Google Sheets는 배포 후 필요하지 않습니다.
 |---|---|---|
 | 인형 이름·속성·추천 옵션·공용키 | Supabase `dolls` | 누구나 읽을 수 있고 관리자만 수정 |
 | 신규 인형 일러스트 | Supabase Storage | 관리자만 업로드·수정·삭제 |
-| 초기 일러스트 | Cloudflare Pages `assets/dolls/` | 프로젝트에 포함된 정적 파일 |
+| 초기 인형 일러스트 | 비어 있음 | 관리자 페이지에서 나중에 직접 업로드 |
 | 파밍 상태·개인 비고·개인 옵션 | 이용자 브라우저 | 로그인 없이 `localStorage`에 저장 |
 | 관리자 계정 | Supabase Auth + `app_admins` | `/admin.html`에서만 사용 |
 
@@ -38,11 +38,12 @@ index.html                         로그인 없는 일반 이용자 화면
 admin.html                         관리자 화면
 admin.js                           관리자 로그인·DB·이미지 관리
 config.js                          Supabase 공개 설정
-assets/dolls/                      기존 시트에서 추출한 초기 일러스트
+assets/dolls/                      빈 폴더 유지용 `.gitkeep`
 supabase/schema.sql                공용 DB, 관리자 RLS, Storage 정책
 supabase/seed.sql                  현재 인형 초기 데이터
 supabase/promote-admin.sql         관리자 지정 예시
 supabase/fix-missing-is-active.sql 구버전 DB의 is_active 누락 오류 보정
+supabase/clear-bundled-images.sql  기존 잘못된 정적 이미지 경로 제거
 supabase/remove-user-sync.sql      이전 개인 동기화 테이블 제거용(선택)
 ```
 
@@ -138,13 +139,32 @@ https://프로젝트명.pages.dev/**
 
 # 4. 일러스트 저장 방식
 
-기존 인형의 초기 일러스트는 `assets/dolls/`에 들어 있으며 Cloudflare Pages가 정적 파일로 제공합니다.
+초기 인형 데이터의 일러스트는 모두 빈 상태입니다. 잘못 연결된 기존 정적 이미지는 프로젝트에 포함하지 않습니다.
 
-관리자 페이지에서 새 이미지를 올리면 Supabase Storage의 `doll-images` 버킷에 저장되고, 공개 URL이 `dolls.image_url`에 기록됩니다.
+이미 `seed.sql`을 실행하여 예전 이미지 경로가 DB에 들어간 경우 SQL Editor에서 다음 파일을 한 번 실행합니다.
+
+```text
+supabase/clear-bundled-images.sql
+```
+
+이 SQL은 `assets/dolls/...` 형식의 기존 경로만 비우므로, 관리자 페이지에서 나중에 직접 올린 Supabase Storage 이미지는 유지합니다.
+
+새 일러스트 등록 방법:
+
+1. `/admin.html`에서 관리자 로그인
+2. 인형 목록에서 `수정`
+3. `인형 일러스트` 파일 선택
+4. `저장`
 
 - 권장 형식: WebP 또는 JPEG
-- 관리자 화면 업로드 제한: 5MB
-- 카드에서는 원본 비율을 유지하여 표시
+- 업로드 제한: 5MB
+- 잘못 올린 이미지는 `현재 일러스트 제거`를 선택하고 저장
+
+## 화면 표시 설정
+
+- 상단 `밝은 화면` / `어두운 화면` 버튼으로 테마를 전환합니다.
+- 선택한 테마는 브라우저에 저장되며 사용자 화면과 관리자 화면에 함께 적용됩니다.
+- 인형 목록은 `표시 순서`가 큰 값부터 표시됩니다. 신규 인형은 기존 최댓값보다 큰 순서를 입력하면 맨 위에 나타납니다.
 
 # 5. Cloudflare Pages 배포
 

@@ -4,21 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GF2 DB 관리자</title>
+  <script>
+    (() => {
+      try {
+        const saved = localStorage.getItem('gf2-ui-theme-v1');
+        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      } catch (_) { document.documentElement.dataset.theme = 'dark'; }
+    })();
+  </script>
   <style>
-    :root{color-scheme:dark;--bg:#0d1117;--panel:#151b23;--panel2:#1b2430;--line:#2b3948;--text:#edf3f8;--muted:#93a4b7;--accent:#58d6c8;--danger:#ff7a7a;--success:#72dd9c}
+    :root{color-scheme:dark;--bg:#0d1117;--panel:#151b23;--panel2:#1b2430;--field:#0f151c;--row:#111820;--thumb:#202b37;--line:#2b3948;--text:#edf3f8;--muted:#93a4b7;--accent:#58d6c8;--danger:#ff7a7a;--success:#72dd9c;--header:rgba(13,17,23,.95);--primary-text:#08201d;--toast-text:#08201d} :root[data-theme="light"]{color-scheme:light;--bg:#eef3f6;--panel:#fff;--panel2:#f4f7f9;--field:#fff;--row:#f7fafb;--thumb:#e8eff3;--line:#cbd7de;--text:#17262d;--muted:#526871;--accent:#087f75;--danger:#c24141;--success:#238a52;--header:rgba(248,251,252,.95);--primary-text:#fff;--toast-text:#08201d}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Pretendard,"Noto Sans KR",system-ui,sans-serif}
-    header{position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);background:rgba(13,17,23,.95);backdrop-filter:blur(12px)}
+    header{position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);background:var(--header);backdrop-filter:blur(12px)}
     .bar,.wrap{width:min(1280px,100%);margin:auto;padding:16px 20px}.bar{display:flex;align-items:center;justify-content:space-between;gap:12px}.bar h1{font-size:23px;margin:0}.actions{display:flex;gap:8px;flex-wrap:wrap}
-    button,.button,input,textarea,select{font:inherit} button,.button{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:9px 13px;cursor:pointer;text-decoration:none;font-weight:750}.primary{background:var(--accent);border-color:var(--accent);color:#08201d}.danger{color:var(--danger)}
+    button,.button,input,textarea,select{font:inherit} button,.button{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:9px 13px;cursor:pointer;text-decoration:none;font-weight:750}.primary{background:var(--accent);border-color:var(--accent);color:var(--primary-text)}.danger{color:var(--danger)}
     .notice{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);margin-bottom:16px}.grid{display:grid;grid-template-columns:minmax(330px,430px) 1fr;gap:18px}.panel{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px}.panel h2{margin:0 0 13px;font-size:19px}
-    label{display:grid;gap:5px;margin:0 0 11px;color:var(--muted);font-size:13px;font-weight:700} input,textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:#0f151c;color:var(--text);padding:9px 10px;outline:none} input:focus,textarea:focus,select:focus{border-color:var(--accent)} textarea{min-height:76px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-    .list{display:grid;gap:8px;max-height:calc(100vh - 160px);overflow:auto}.row{display:grid;grid-template-columns:64px 1fr auto;gap:11px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:9px;background:#111820}.thumb{width:64px;height:78px;border-radius:7px;background:#202b37;object-fit:contain}.name{font-weight:850}.meta{font-size:12px;color:var(--muted)}.row-actions{display:flex;gap:5px}.row-actions button{padding:6px 8px;font-size:12px}.empty{padding:40px;text-align:center;color:var(--muted)}
-    #toast{position:fixed;right:20px;bottom:20px;opacity:0;transform:translateY(10px);transition:.2s;padding:11px 14px;border-radius:9px;background:#dffffb;color:#08201d;font-weight:800;pointer-events:none}#toast.show{opacity:1;transform:none}#toast.error{background:#ffd9d9;color:#471010}
+    label{display:grid;gap:5px;margin:0 0 11px;color:var(--muted);font-size:13px;font-weight:700} input,textarea,select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--text);padding:9px 10px;outline:none} input:focus,textarea:focus,select:focus{border-color:var(--accent)} textarea{min-height:76px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+    .list{display:grid;gap:8px;max-height:calc(100vh - 160px);overflow:auto}.row{display:grid;grid-template-columns:64px 1fr auto;gap:11px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--row)}.thumb{width:64px;height:78px;border-radius:7px;background:var(--thumb);object-fit:contain}.name{font-weight:850}.meta{font-size:12px;color:var(--muted)}.row-actions{display:flex;gap:5px}.row-actions button{padding:6px 8px;font-size:12px}.empty{padding:40px;text-align:center;color:var(--muted)}
+    #toast{position:fixed;right:20px;bottom:20px;opacity:0;transform:translateY(10px);transition:.2s;padding:11px 14px;border-radius:9px;background:#dffffb;color:var(--toast-text);font-weight:800;pointer-events:none}#toast.show{opacity:1;transform:none}#toast.error{background:#ffd9d9;color:#471010}
     [hidden]{display:none!important}@media(max-width:850px){.grid{grid-template-columns:1fr}.list{max-height:none}.two{grid-template-columns:1fr}.bar{align-items:flex-start}}
   </style>
 </head>
 <body>
-<header><div class="bar"><div><h1>GF2 DB 관리자</h1><div id="authState" class="meta">권한 확인 중…</div></div><div class="actions"><a class="button" href="index.html">사용자 화면</a><button id="loginButton" class="primary">이메일 로그인</button></div></div></header>
+<header><div class="bar"><div><h1>GF2 DB 관리자</h1><div id="authState" class="meta">권한 확인 중…</div></div><div class="actions"><button id="themeToggleButton" type="button">☀ 밝은 화면</button><a class="button" href="index.html">사용자 화면</a><button id="loginButton" class="primary">이메일 로그인</button></div></div></header>
 <main class="wrap">
   <div id="notice" class="notice">관리자 계정으로 로그인해야 인형 DB와 일러스트를 수정할 수 있습니다.</div>
   <div id="adminApp" class="grid" hidden>
@@ -37,6 +47,7 @@
         <div class="two"><label>공용키<input id="commonKey"></label><label>표시 순서<input id="order" type="number" min="0" value="999"></label></div>
         <label>공용키 효과<textarea id="commonEffect" maxlength="2000"></textarea></label>
         <label>인형 일러스트<input id="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="removeImage" type="checkbox" style="width:auto">현재 일러스트 제거</label>
         <label style="display:flex;grid-template-columns:auto 1fr;align-items:center"><input id="active" type="checkbox" checked style="width:auto">사이트에 표시</label>
         <div class="form-actions"><button id="clearButton" type="button">새로 작성</button><button class="primary" type="submit">저장</button></div>
       </form>

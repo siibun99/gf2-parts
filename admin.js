@@ -5,6 +5,7 @@ let db = null;
 let session = null;
 let dolls = [];
 let editingImageUrl = '';
+const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
 
 const $ = id => document.getElementById(id);
 
@@ -58,10 +59,24 @@ async function init() {
 }
 
 function bindEvents() {
+  $('themeToggleButton').addEventListener('click', toggleTheme);
+  updateThemeButton();
   $('loginButton').addEventListener('click', handleLogin);
   $('clearButton').addEventListener('click', clearForm);
   $('dollForm').addEventListener('submit', saveDoll);
   $('dollList').addEventListener('click', handleListClick);
+}
+
+function updateThemeButton() {
+  const light = document.documentElement.dataset.theme === 'light';
+  $('themeToggleButton').textContent = light ? '🌙 어두운 화면' : '☀ 밝은 화면';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch (_) {}
+  updateThemeButton();
 }
 
 async function handleLogin() {
@@ -128,8 +143,8 @@ async function loadDolls() {
   const { data, error } = await db
     .from('dolls')
     .select('*')
-    .order('display_order', { ascending: true })
-    .order('name', { ascending: true });
+    .order('display_order', { ascending: false })
+    .order('name', { ascending: false });
 
   if (error) {
     toast(error.message || '인형 목록을 불러오지 못했습니다.', true);
@@ -198,6 +213,7 @@ function fillForm(doll) {
   $('order').value = Number(doll.display_order || 0);
   $('active').checked = Boolean(doll.is_active);
   $('image').value = '';
+  $('removeImage').checked = false;
   editingImageUrl = doll.image_url || '';
   $('name').focus();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -208,6 +224,7 @@ function clearForm() {
   $('id').value = '';
   $('order').value = 999;
   $('active').checked = true;
+  $('removeImage').checked = false;
   $('formTitle').textContent = '새 인형 추가';
   editingImageUrl = '';
 }
@@ -243,7 +260,8 @@ async function saveDoll(event) {
   }
 
   try {
-    const imageUrl = await uploadImage($('image').files?.[0], slug);
+    let imageUrl = $('removeImage').checked ? '' : editingImageUrl;
+    if ($('image').files?.[0]) imageUrl = await uploadImage($('image').files[0], slug);
     const payload = {
       slug,
       name,
