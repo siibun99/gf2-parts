@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>소녀전선2 장비 파밍 도우미</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #151b23;
+      --panel-2: #1b2430;
+      --panel-3: #222d3a;
+      --line: #2b3948;
+      --text: #edf3f8;
+      --muted: #93a4b7;
+      --faint: #65778b;
+      --accent: #58d6c8;
+      --accent-soft: rgba(88, 214, 200, .14);
+      --warning: #ffbd69;
+      --danger: #ff7a7a;
+      --success: #72dd9c;
+      --physical: #aeb9c6;
+      --burn: #ff785f;
+      --freeze: #72cfff;
+      --electric: #f2d35f;
+      --acid: #b58cff;
+      --turbid: #639cff;
+      --resonance: #ff6bb2;
+      --shadow: 0 16px 44px rgba(0, 0, 0, .24);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      min-height: 0;
+      height: 100dvh;
+      background:
+        radial-gradient(900px 500px at 8% -8%, rgba(42, 113, 111, .22), transparent 65%),
+        radial-gradient(800px 440px at 100% 0, rgba(66, 83, 130, .18), transparent 62%),
+        var(--bg);
+      color: var(--text);
+      font-family: Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+
+    a { color: var(--accent); }
+
+    .app-header {
+      position: relative;
+      z-index: 30;
+      flex: 0 0 auto;
+      border-bottom: 1px solid rgba(43, 57, 72, .85);
+      background: rgba(13, 17, 23, .91);
+      backdrop-filter: blur(14px);
+    }
+
+    .header-inner {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 18px 22px 14px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .18em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 4vw, 38px);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px;
+    }
+
+    .button {
+      min-height: 39px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      cursor: pointer;
+      transition: .15s ease;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .button:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: #08201d; }
+    .button.ghost { background: transparent; }
+    .button.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .button.small { min-height: 33px; padding: 6px 10px; font-size: 12px; }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-top: 15px;
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      flex: none;
+      padding: 8px 14px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .tab-button.active {
+      border-color: rgba(88, 214, 200, .38);
+      background: var(--accent-soft);
+      color: #dffffb;
+    }
+
+    main {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .view {
+      display: none;
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+    }
+
+    .view.active { display: block; }
+
+    .view-inner {
+      width: min(1480px, 100%);
+      min-height: 100%;
+      margin: 0 auto;
+      padding: 20px 22px 70px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .search-box input {
+      width: 100%;
+      height: 45px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      outline: none;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .search-box input:focus { border-color: var(--accent); }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .filter-chip {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .filter-chip.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #ddfffb;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 14px 0 18px;
+    }
+
+    .summary-card {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: linear-gradient(145deg, var(--panel), rgba(27, 36, 48, .8));
+    }
+
+    .summary-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .summary-value { margin-top: 4px; font-size: 24px; font-weight: 900; letter-spacing: -.03em; }
+
+    .progress-line {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #0b1016;
+    }
+
+    .progress-line > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 12px;
+    }
+
+    .doll-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      padding: 17px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 9px 26px rgba(0, 0, 0, .12);
+    }
+
+    .doll-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: var(--attr-color, var(--faint));
+    }
+
+    .doll-card.status-unowned { opacity: .68; }
+    .doll-card.status-completed { border-color: rgba(114, 221, 156, .52); }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .card-identity {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .identity-text { min-width: 0; flex: 1; }
+
+    .doll-portrait {
+      position: relative;
+      width: 88px;
+      height: 112px;
+      flex: none;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--attr-color) 48%, var(--line));
+      border-radius: 10px;
+      background:
+        linear-gradient(150deg, color-mix(in srgb, var(--attr-color) 24%, transparent), transparent 64%),
+        var(--panel-3);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -.04em;
+    }
+
+    .doll-portrait img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center bottom;
+      background:
+        radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--attr-color) 18%, transparent), transparent 62%),
+        var(--panel-3);
+      opacity: 0;
+      transition: opacity .18s ease;
+      image-rendering: auto;
+    }
+
+    .doll-portrait img.loaded { opacity: 1; }
+    .doll-portrait .portrait-fallback { opacity: .9; }
+
+    .doll-name { margin: 0; font-size: 21px; letter-spacing: -.02em; }
+
+    .meta-row, .option-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .meta-row { margin-top: 6px; }
+
+    .tag, .option-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .018);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.attr { color: var(--attr-color); border-color: color-mix(in srgb, var(--attr-color) 48%, var(--line)); }
+    .option-tag { color: #dce6ef; background: var(--panel-2); }
+    .option-tag.set { color: var(--warning); }
+
+    .status-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+      max-width: 240px;
+    }
+
+    .status-chip {
+      min-height: 32px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel-2);
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 800;
+      transition: .15s ease;
+    }
+
+    .status-chip:hover { transform: translateY(-1px); }
+
+    .status-chip.active[data-status="tracked"] {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #e1fffc;
+    }
+
+    .status-chip.active[data-status="unowned"] {
+      border-color: rgba(255, 189, 105, .65);
+      background: rgba(255, 189, 105, .12);
+      color: #ffe0ae;
+    }
+
+    .status-chip.active[data-status="completed"] {
+      border-color: rgba(114, 221, 156, .7);
+      background: rgba(114, 221, 156, .13);
+      color: #dcffe9;
+    }
+
+    .config-block {
+      margin-top: 12px;
+      padding-top: 11px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .config-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .piece-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 11px;
+    }
+
+    .piece-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 43px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      cursor: pointer;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .piece-button .checkmark {
+      width: 19px;
+      height: 19px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border: 1px solid var(--faint);
+      border-radius: 5px;
+      color: transparent;
+    }
+
+    .piece-button.done {
+      border-color: rgba(114, 221, 156, .55);
+      background: rgba(114, 221, 156, .1);
+      color: #dcffe9;
+    }
+
+    .piece-button.done .checkmark {
+      border-color: var(--success);
+      background: var(--success);
+      color: #092013;
+    }
+
+    .card-note, .key-box {
+      margin-top: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .card-note { border: 1px solid rgba(255, 189, 105, .28); color: #f0c991; }
+    .key-box strong { color: var(--accent); }
+
+    .personal-note-field {
+      display: block;
+      margin-top: 10px;
+    }
+
+    .personal-note-field span {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .06em;
+    }
+
+    .personal-note-field textarea {
+      width: 100%;
+      min-height: 70px;
+      resize: vertical;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      outline: none;
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .personal-note-field textarea:focus { border-color: var(--accent); }
+
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: auto;
+      padding-top: 12px;
+    }
+
+    .empty-state, .loading-state {
+      padding: 60px 20px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .reference-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .reference-section {
+      margin-bottom: 14px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+    }
+
+    .reference-section summary {
+      padding: 12px 14px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 900;
+      user-select: none;
+    }
+
+    .table-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+
+    table {
+      width: 100%;
+      min-width: 1060px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 9px 10px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      line-height: 1.5;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--panel-3);
+      color: #e4edf5;
+      white-space: nowrap;
+    }
+
+    th:first-child, td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      min-width: 210px;
+      background: var(--panel-2);
+      font-weight: 800;
+    }
+
+    th:first-child { z-index: 3; background: var(--panel-3); }
+
+    .cell-names { color: var(--muted); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, .68);
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(880px, 100%);
+      max-height: min(90vh, 920px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .modal-header, .modal-footer {
+      position: sticky;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 14px 16px;
+      background: rgba(21, 27, 35, .97);
+    }
+
+    .modal-header { top: 0; border-bottom: 1px solid var(--line); }
+    .modal-footer { bottom: 0; border-top: 1px solid var(--line); }
+    .modal-header h2 { margin: 0; font-size: 22px; }
+    .modal-body { padding: 16px; }
+
+    .editor-group {
+      margin-bottom: 18px;
+      padding-bottom: 17px;
+      border-bottom: 1px dashed var(--line);
+    }
+
+    .editor-group:last-child { border-bottom: 0; }
+
+    .editor-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .editor-heading strong { font-size: 14px; }
+    .editor-heading span { color: var(--muted); font-size: 12px; }
+
+    .choice-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .choice-chip {
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .choice-chip.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #e1fffc;
+    }
+
+    .choice-chip.recommended::after {
+      content: "추천";
+      margin-left: 5px;
+      color: var(--warning);
+      font-size: 8px;
+      vertical-align: 1px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 100;
+      max-width: min(400px, calc(100vw - 36px));
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #202b37;
+      box-shadow: var(--shadow);
+      color: var(--text);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: .2s ease;
+      font-size: 13px;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { border-color: rgba(255, 122, 122, .55); color: #ffd8d8; }
+
+    .source-line {
+      margin-top: 20px;
+      color: var(--faint);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    input[type="file"] { display: none; }
+
+    @media (max-width: 800px) {
+      .title-row { display: block; }
+      .header-actions { justify-content: flex-start; margin-top: 12px; }
+      .toolbar { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .header-inner, .view-inner { padding-left: 13px; padding-right: 13px; }
+      .summary-grid { grid-template-columns: 1fr 1fr; gap: 7px; }
+      .summary-value { font-size: 20px; }
+      .piece-grid { grid-template-columns: 1fr 1fr; }
+      .button { padding-left: 9px; padding-right: 9px; }
+      .card-head { display: block; }
+      .card-identity { align-items: center; }
+      .doll-portrait { width: 76px; height: 96px; }
+      .status-controls { justify-content: flex-start; max-width: none; margin-top: 10px; }
+    }
+
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="title-row">
+        <div>
+          <p class="eyebrow">GIRLS' FRONTLINE 2 · PERSONAL GEAR TRACKER</p>
+          <h1>소녀전선2 장비 파밍 도우미</h1>
+          <p class="subtitle" id="sourceStatus">공용 데이터를 불러오는 중입니다…</p>
+        </div>
+        <div class="header-actions">
+          <button class="button ghost" id="exportButton" type="button">백업 내보내기</button>
+          <label class="button ghost" for="importInput">백업 가져오기</label>
+          <input id="importInput" type="file" accept="application/json,.json">
+          <button class="button danger" id="resetAllButton" type="button">개인 데이터 초기화</button>
+        </div>
+      </div>
+
+      <nav class="tabs" aria-label="주요 화면">
+        <button class="tab-button active" type="button" data-tab="farm">장비파밍 현황</button>
+        <button class="tab-button" type="button" data-tab="reference">무기파츠 표</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="view active" id="farmView">
+      <div class="view-inner">
+      <div class="toolbar">
+        <div class="search-box">
+          <input id="searchInput" type="search" placeholder="인형 이름, 공용키, 세트 옵션 검색">
+        </div>
+        <div class="filter-row" id="scopeFilters">
+          <button class="filter-chip active" type="button" data-scope="all">전체 인형</button>
+          <button class="filter-chip" type="button" data-scope="tracked">파밍 대상만</button>
+          <button class="filter-chip" type="button" data-scope="incomplete">미완료만</button>
+          <button class="filter-chip" type="button" data-scope="completed">파밍 완료만</button>
+          <button class="filter-chip" id="hideUnownedButton" type="button" data-toggle="hide-unowned">미보유 숨기기</button>
+        </div>
+      </div>
+
+      <div class="filter-row" id="weaponFilters"></div>
+      <div class="filter-row" id="attrFilters"></div>
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="card-grid" id="dollGrid">
+        <div class="loading-state">데이터를 불러오는 중입니다…</div>
+      </div>
+      <div class="source-line" data-footer-source></div>
+      </div>
+    </section>
+
+    <section class="view" id="referenceView">
+      <div class="view-inner">
+      <div class="reference-toolbar">
+        <div>
+          <strong>무기파츠 표</strong>
+          <div class="subtitle">장비파밍 현황에서 저장한 개인 구성을 무기 종류별로 실시간 분류합니다.</div>
+        </div>
+        <button class="button small" type="button" id="toggleReferenceButton">모두 펼치기</button>
+      </div>
+      <div id="referenceContent"></div>
+      <div class="source-line" data-footer-source></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="editorBackdrop" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="editorTitle">장비 구성 편집</h2>
+          <div class="subtitle">추천값이 기본 선택되어 있으며 개인 설정으로 변경할 수 있습니다.</div>
+        </div>
+        <button class="button small" type="button" id="closeEditorButton">닫기</button>
+      </div>
+      <div class="modal-body" id="editorBody"></div>
+      <div class="modal-footer">
+        <button class="button ghost" type="button" id="restoreRecommendedButton">추천값으로 되돌리기</button>
+        <div>
+          <button class="button ghost" type="button" id="cancelEditorButton">취소</button>
+          <button class="button primary" type="button" id="saveEditorButton">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    'use strict';
+
+    const STORAGE_KEY = 'gf2-personal-farming-v2-supabase';
+    const UI_STORAGE_KEY = 'gf2-personal-farming-ui-v2-supabase';
+    const SLOT_LABELS = {
+      muzzle: '총구',
+      p1: '파츠 1',
+      p2: '파츠 2',
+      p3: '파츠 3'
+    };
+
+    const ATTR_COLORS = {
+      '물리': 'var(--physical)',
+      '연소': 'var(--burn)',
+      '빙결': 'var(--freeze)',
+      '전도': 'var(--electric)',
+      '산성': 'var(--acid)',
+      '탁류': 'var(--turbid)',
+      '공진': 'var(--resonance)'
+    };
+
+    const app = {
+      data: null,
+      personal: loadPersonalData(),
+      activeTab: 'farm',
+      query: '',
+      weaponFilters: new Set(),
+      attrFilters: new Set(),
+      scope: 'all',
+      hideUnowned: loadUiPreferences().hideUnowned,
+      editorName: null,
+      editorDraft: null,
+      referenceRendered: false,
+      supabase: null
+    };
+
+    function loadUiPreferences() {
+      try {
+        const raw = localStorage.getItem(UI_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return { hideUnowned: Boolean(parsed?.hideUnowned) };
+      } catch (error) {
+        console.error('화면 설정 불러오기 실패', error);
+        return { hideUnowned: false };
+      }
+    }
+
+    function saveUiPreferences() {
+      try {
+        localStorage.setItem(UI_STORAGE_KEY, JSON.stringify({
+          hideUnowned: app.hideUnowned
+        }));
+      } catch (error) {
+        console.error('화면 설정 저장 실패', error);
+      }
+    }
+
+    function personalStorageKey() {
+      return `${STORAGE_KEY}:guest`;
+    }
+
+    function loadPersonalData() {
+      try {
+        const raw = localStorage.getItem(personalStorageKey());
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (error) {
+        console.error('개인 데이터 불러오기 실패', error);
+        return {};
+      }
+    }
+
+    function savePersonalData() {
+      try {
+        localStorage.setItem(personalStorageKey(), JSON.stringify(app.personal));
+      } catch (error) {
+        console.error('개인 데이터 저장 실패', error);
+        showToast('브라우저에 저장하지 못했습니다.', true);
+      }
+    }
+
+    function defaultConfig(doll) {
+      return {
+        status: 'none',
+        personalNote: doll.note || '',
+        noteInitialized: true,
+        setOptions: [...doll.setOptions],
+        muzzle: [...doll.muzzle],
+        parts: [
+          [...doll.part],
+          [...doll.part],
+          [...doll.part]
+        ],
+        done: {
+          muzzle: false,
+          p1: false,
+          p2: false,
+          p3: false
+        }
+      };
+    }
+
+    function getConfig(doll) {
+      const saved = app.personal[doll.name];
+      const base = defaultConfig(doll);
+
+      if (!saved || typeof saved !== 'object') return base;
+
+      const legacyStatus = saved.completed
+        ? 'completed'
+        : saved.unowned
+          ? 'unowned'
+          : saved.tracked
+            ? 'tracked'
+            : 'none';
+      const status = ['none', 'tracked', 'unowned', 'completed'].includes(saved.status)
+        ? saved.status
+        : legacyStatus;
+
+      const config = {
+        status,
+        personalNote: typeof saved.personalNote === 'string' ? saved.personalNote : base.personalNote,
+        noteInitialized: Boolean(saved.noteInitialized),
+        setOptions: Array.isArray(saved.setOptions) ? [...saved.setOptions] : base.setOptions,
+        muzzle: Array.isArray(saved.muzzle) ? [...saved.muzzle].slice(0, 4) : base.muzzle,
+        parts: [0, 1, 2].map(index => (
+          Array.isArray(saved.parts?.[index])
+            ? [...saved.parts[index]].slice(0, 3)
+            : base.parts[index]
+        )),
+        done: {
+          muzzle: Boolean(saved.done?.muzzle),
+          p1: Boolean(saved.done?.p1),
+          p2: Boolean(saved.done?.p2),
+          p3: Boolean(saved.done?.p3)
+        }
+      };
+
+      if (config.status === 'completed') {
+        Object.keys(config.done).forEach(slot => { config.done[slot] = true; });
+      }
+
+      return config;
+    }
+
+    function setConfig(name, config) {
+      app.personal[name] = config;
+      savePersonalData();
+      app.referenceRendered = false;
+      if (app.activeTab === 'reference') renderReference();
+    }
+
+    function migratePersonalNotes() {
+      let changed = false;
+
+      app.data.dolls.forEach(doll => {
+        if (!doll.note) return;
+
+        const saved = app.personal[doll.name];
+        if (!saved || typeof saved !== 'object') {
+          app.personal[doll.name] = {
+            personalNote: doll.note,
+            noteInitialized: true
+          };
+          changed = true;
+          return;
+        }
+
+        if (saved.noteInitialized === true) return;
+
+        if (typeof saved.personalNote !== 'string' || !saved.personalNote.trim()) {
+          saved.personalNote = doll.note;
+        }
+        saved.noteInitialized = true;
+        changed = true;
+      });
+
+      if (changed) savePersonalData();
+    }
+
+    function findDoll(name) {
+      return app.data?.dolls.find(doll => doll.name === name) || null;
+    }
+
+    async function init() {
+      bindStaticEvents();
+      try {
+        const cfg = window.GF2_CONFIG || {};
+        if (!cfg.supabaseUrl || !cfg.supabasePublishableKey || cfg.supabaseUrl.includes('YOUR_PROJECT')) {
+          throw new Error('config.js에 Supabase URL과 Publishable Key를 입력해주세요.');
+        }
+        app.supabase = window.supabase.createClient(
+          cfg.supabaseUrl,
+          cfg.supabasePublishableKey,
+          { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+        );
+        await loadAppData();
+      } catch (error) {
+        handleDataFailure(error);
+      }
+    }
+
+    async function loadAppData() {
+      const { data: rows, error } = await app.supabase
+        .from('dolls')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .order('name', { ascending: true });
+      if (error) throw error;
+
+      const setOptions = unique(rows.flatMap(row => row.recommended_sets || []));
+      const statOptions = unique(rows.flatMap(row => [
+        ...(row.recommended_muzzle || []), ...(row.recommended_parts || [])
+      ]));
+      const weaponOrder = ['돌격소총','산탄총','기관단총','기관총','저격소총','권총','도검'];
+      const attrOrder = ['물리','연소','빙결','전도','산성','탁류','공진'];
+      const data = {
+        spreadsheetId: '',
+        spreadsheetName: 'Supabase DB',
+        sourceUrl: '',
+        loadedAt: new Intl.DateTimeFormat('ko-KR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()),
+        dolls: rows.map(row => ({
+          id: row.id,
+          slug: row.slug,
+          name: row.name,
+          weapon: row.weapon_type,
+          attr: row.attribute,
+          setOptions: row.recommended_sets || [],
+          muzzle: row.recommended_muzzle || [],
+          part: row.recommended_parts || [],
+          note: row.default_note || '',
+          keyName: row.common_key || '',
+          keyEffect: row.common_key_effect || '',
+          imageUrl: row.image_url || ''
+        })),
+        setOptions,
+        statOptions,
+        weapons: orderedUnique(weaponOrder, rows.map(row => row.weapon_type).filter(x => x && x !== '기타')),
+        attrs: orderedUnique(attrOrder, rows.map(row => row.attribute).filter(Boolean))
+      };
+      handleDataLoaded(data);
+    }
+
+    function orderedUnique(preferred, values) {
+      const all = unique(values);
+      return [...preferred.filter(v => all.includes(v)), ...all.filter(v => !preferred.includes(v))];
+    }
+
+    function unique(values) {
+      return [...new Set((values || []).filter(Boolean))];
+    }
+
+    function handleDataLoaded(data) {
+      app.data = data;
+      migratePersonalNotes();
+      document.getElementById('sourceStatus').textContent =
+        `${data.spreadsheetName} · ${data.dolls.length}명 · 조회 ${data.loadedAt}`;
+      document.querySelectorAll('[data-footer-source]').forEach(footer => {
+        footer.textContent = '공용 인형 데이터는 Supabase에서 읽고, 개인 진행 상황은 이 브라우저에만 저장합니다.';
+      });
+
+      renderFilterChips();
+      document.getElementById('hideUnownedButton').classList.toggle('active', app.hideUnowned);
+      renderFarm();
+    }
+
+    function handleDataFailure(error) {
+      console.error(error);
+      document.getElementById('sourceStatus').textContent = '데이터를 불러오지 못했습니다.';
+      document.getElementById('dollGrid').innerHTML = `
+        <div class="empty-state">
+          데이터 불러오기 실패<br>
+          ${escapeHtml(error?.message || String(error))}
+        </div>`;
+    }
+
+    function bindStaticEvents() {
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => switchTab(button.dataset.tab));
+      });
+
+
+      document.getElementById('searchInput').addEventListener('input', event => {
+        app.query = event.target.value.trim().toLowerCase();
+        renderFarm();
+      });
+
+      document.getElementById('scopeFilters').addEventListener('click', event => {
+        const scopeButton = event.target.closest('[data-scope]');
+        if (scopeButton) {
+          app.scope = scopeButton.dataset.scope;
+          document.querySelectorAll('[data-scope]').forEach(item => {
+            item.classList.toggle('active', item.dataset.scope === app.scope);
+          });
+          renderFarm();
+          return;
+        }
+
+        const toggleButton = event.target.closest('[data-toggle="hide-unowned"]');
+        if (!toggleButton) return;
+        app.hideUnowned = !app.hideUnowned;
+        toggleButton.classList.toggle('active', app.hideUnowned);
+        saveUiPreferences();
+        renderFarm();
+      });
+
+      document.getElementById('dollGrid').addEventListener('click', handleCardClick);
+      document.getElementById('dollGrid').addEventListener('change', handleCardChange);
+
+      document.getElementById('closeEditorButton').addEventListener('click', closeEditor);
+      document.getElementById('cancelEditorButton').addEventListener('click', closeEditor);
+      document.getElementById('saveEditorButton').addEventListener('click', saveEditor);
+      document.getElementById('restoreRecommendedButton').addEventListener('click', restoreRecommendedInEditor);
+
+      document.getElementById('editorBackdrop').addEventListener('click', event => {
+        if (event.target.id === 'editorBackdrop') closeEditor();
+      });
+
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeEditor();
+      });
+
+      document.getElementById('exportButton').addEventListener('click', exportBackup);
+      document.getElementById('importInput').addEventListener('change', importBackup);
+      document.getElementById('resetAllButton').addEventListener('click', resetAllPersonalData);
+      document.getElementById('toggleReferenceButton').addEventListener('click', toggleAllReferenceSections);
+    }
+
+    function switchTab(tab) {
+      if (!['farm', 'reference'].includes(tab) || tab === app.activeTab) return;
+
+      app.activeTab = tab;
+
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.toggle('active', button.dataset.tab === tab);
+      });
+      document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+      document.getElementById(tab === 'farm' ? 'farmView' : 'referenceView').classList.add('active');
+
+      if (tab === 'reference' && app.data) {
+        renderReference();
+      }
+    }
+
+    function renderFilterChips() {
+      renderChipContainer('weaponFilters', app.data.weapons, 'weapon');
+      renderChipContainer('attrFilters', app.data.attrs, 'attr');
+    }
+
+    function renderChipContainer(containerId, values, type) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = values.map(value => `
+        <button class="filter-chip" type="button" data-filter-type="${type}" data-value="${escapeAttr(value)}">
+          ${escapeHtml(value)}
+        </button>`).join('');
+
+      container.addEventListener('click', event => {
+        const button = event.target.closest('[data-value]');
+        if (!button) return;
+
+        const set = button.dataset.filterType === 'weapon'
+          ? app.weaponFilters
+          : app.attrFilters;
+        const value = button.dataset.value;
+
+        if (set.has(value)) set.delete(value);
+        else set.add(value);
+
+        button.classList.toggle('active', set.has(value));
+        renderFarm();
+      });
+    }
+
+    function filteredDolls() {
+      if (!app.data) return [];
+
+      return app.data.dolls.filter(doll => {
+        const config = getConfig(doll);
+        const searchable = [
+          doll.name,
+          doll.weapon,
+          doll.attr,
+          doll.keyName,
+          doll.keyEffect,
+          config.personalNote,
+          ...config.setOptions
+        ].join(' ').toLowerCase();
+
+        if (app.query && !searchable.includes(app.query)) return false;
+        if (app.weaponFilters.size && !app.weaponFilters.has(doll.weapon)) return false;
+        if (app.attrFilters.size && !app.attrFilters.has(doll.attr)) return false;
+        if (app.hideUnowned && config.status === 'unowned') return false;
+        if (app.scope === 'tracked' && config.status !== 'tracked') return false;
+        if (app.scope === 'incomplete' && (config.status === 'unowned' || isConfigComplete(config))) return false;
+        if (app.scope === 'completed' && !isConfigComplete(config)) return false;
+        return true;
+      });
+    }
+
+    function renderFarm() {
+      if (!app.data) return;
+
+      renderSummary();
+      const dolls = filteredDolls();
+      const grid = document.getElementById('dollGrid');
+
+      if (!dolls.length) {
+        grid.innerHTML = '<div class="empty-state">조건에 맞는 인형이 없습니다.</div>';
+        return;
+      }
+
+      grid.innerHTML = dolls.map(renderDollCard).join('');
+    }
+
+    function renderSummary() {
+      const allConfigs = app.data.dolls.map(doll => getConfig(doll));
+      const trackedConfigs = allConfigs.filter(config => config.status === 'tracked');
+      const unownedConfigs = allConfigs.filter(config => config.status === 'unowned');
+      const completedConfigs = allConfigs.filter(config => isConfigComplete(config));
+      const progressConfigs = allConfigs.filter(config => (
+        config.status === 'tracked' || isConfigComplete(config)
+      ));
+      const donePieces = progressConfigs.reduce((sum, config) => (
+        sum + Object.values(config.done).filter(Boolean).length
+      ), 0);
+      const totalPieces = progressConfigs.length * 4;
+      const percent = totalPieces ? Math.round(donePieces / totalPieces * 100) : 0;
+
+      document.getElementById('summaryGrid').innerHTML = `
+        ${summaryCard('전체 인형', app.data.dolls.length)}
+        ${summaryCard('파밍 대상', trackedConfigs.length)}
+        ${summaryCard('미보유', unownedConfigs.length)}
+        ${summaryCard('파밍 완료', completedConfigs.length)}
+        <div class="summary-card">
+          <div class="summary-label">파츠 진행률</div>
+          <div class="summary-value">${donePieces} / ${totalPieces}</div>
+          <div class="progress-line"><span style="width:${percent}%"></span></div>
+        </div>`;
+    }
+
+    function summaryCard(label, value) {
+      return `
+        <div class="summary-card">
+          <div class="summary-label">${escapeHtml(label)}</div>
+          <div class="summary-value">${value}</div>
+        </div>`;
+    }
+
+    function renderDollCard(doll) {
+      const config = getConfig(doll);
+      const encodedName = encodeURIComponent(doll.name);
+      const color = ATTR_COLORS[doll.attr] || 'var(--faint)';
+
+      return `
+        <article class="doll-card status-${config.status}" style="--attr-color:${color}" data-name="${encodedName}">
+          <div class="card-head">
+            <div class="card-identity">
+              ${renderDollPortrait(doll)}
+              <div class="identity-text">
+                <h2 class="doll-name">${escapeHtml(doll.name)}</h2>
+                <div class="meta-row">
+                  <span class="tag">${escapeHtml(doll.weapon)}</span>
+                  ${doll.attr ? `<span class="tag attr">${escapeHtml(doll.attr)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="status-controls" aria-label="인형 상태">
+              <button class="status-chip ${config.status === 'tracked' ? 'active' : ''}" type="button" data-action="set-status" data-status="tracked">파밍 대상</button>
+              <button class="status-chip ${config.status === 'unowned' ? 'active' : ''}" type="button" data-action="set-status" data-status="unowned">미보유</button>
+              <button class="status-chip ${config.status === 'completed' ? 'active' : ''}" type="button" data-action="set-status" data-status="completed">파밍 완료</button>
+            </div>
+          </div>
+
+          <div class="config-block">
+            <div class="config-title"><span>세트 옵션</span><span>${config.setOptions.length}개</span></div>
+            <div class="option-row">${renderOptionTags(config.setOptions, 'set')}</div>
+          </div>
+
+          <div class="config-block">
+            <div class="config-title"><span>총구 · 4개 옵션</span><span>${config.muzzle.length}/4</span></div>
+            <div class="option-row">${renderOptionTags(config.muzzle)}</div>
+          </div>
+
+          <div class="config-block">
+            <div class="config-title"><span>파츠 1·2·3 · 각각 3개 옵션</span><span>개인 구성</span></div>
+            ${config.parts.map((options, index) => `
+              <div style="margin-top:${index ? 7 : 0}px">
+                <div class="subtitle" style="margin:0 0 4px">파츠 ${index + 1}</div>
+                <div class="option-row">${renderOptionTags(options)}</div>
+              </div>`).join('')}
+          </div>
+
+          <div class="piece-grid">
+            ${Object.entries(SLOT_LABELS).map(([slot, label]) => `
+              <button class="piece-button ${config.done[slot] ? 'done' : ''}" type="button" data-action="toggle-done" data-slot="${slot}">
+                <span>${label}</span><span class="checkmark">✓</span>
+              </button>`).join('')}
+          </div>
+
+          <label class="personal-note-field">
+            <span>개인 비고</span>
+            <textarea data-action="personal-note" maxlength="500" placeholder="시트 비고가 기본 입력되며 자유롭게 수정할 수 있습니다.">${escapeHtml(config.personalNote)}</textarea>
+          </label>
+          ${doll.keyName ? `
+            <div class="key-box">
+              <strong>공용키 · ${escapeHtml(doll.keyName)}</strong><br>
+              ${escapeHtml(doll.keyEffect)}
+            </div>` : ''}
+
+          <div class="card-actions">
+            <button class="button small primary" type="button" data-action="edit">구성 편집</button>
+            <button class="button small ghost" type="button" data-action="reset-doll">추천값 복원</button>
+          </div>
+        </article>`;
+    }
+
+    function renderDollPortrait(doll) {
+      const initials = [...String(doll.name || '')].slice(0, 2).join('');
+      const image = doll.imageUrl
+        ? `<img class="portrait-image" src="${escapeAttr(doll.imageUrl)}" alt="${escapeAttr(doll.name)} 일러스트" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.remove()">`
+        : '';
+
+      return `
+        <div class="doll-portrait" aria-label="${escapeAttr(doll.name)} 일러스트">
+          <span class="portrait-fallback">${escapeHtml(initials)}</span>
+          ${image}
+        </div>`;
+    }
+
+    function renderOptionTags(options, className = '') {
+      if (!options?.length) return '<span class="tag">미선택</span>';
+      return options.map(value => `<span class="option-tag ${className}">${escapeHtml(value)}</span>`).join('');
+    }
+
+    function handleCardClick(event) {
+      const actionElement = event.target.closest('[data-action]');
+      if (!actionElement) return;
+      const card = actionElement.closest('[data-name]');
+      if (!card) return;
+
+      const name = decodeURIComponent(card.dataset.name);
+      const doll = findDoll(name);
+      if (!doll) return;
+
+      const action = actionElement.dataset.action;
+      if (action === 'set-status') setDollStatus(doll, actionElement.dataset.status);
+      if (action === 'toggle-done') toggleDone(doll, actionElement.dataset.slot);
+      if (action === 'edit') openEditor(doll);
+      if (action === 'reset-doll') resetDoll(doll);
+    }
+
+    function handleCardChange(event) {
+      if (event.target.dataset.action !== 'personal-note') return;
+      const card = event.target.closest('[data-name]');
+      const name = decodeURIComponent(card.dataset.name);
+      const doll = findDoll(name);
+      if (!doll) return;
+
+      const config = getConfig(doll);
+      config.personalNote = event.target.value.trim();
+      config.noteInitialized = true;
+      setConfig(doll.name, config);
+      showToast(`${doll.name} 개인 비고를 저장했습니다.`);
+    }
+
+    function setDollStatus(doll, nextStatus) {
+      const config = getConfig(doll);
+      const previousStatus = config.status;
+      config.status = previousStatus === nextStatus ? 'none' : nextStatus;
+
+      if (config.status === 'completed') {
+        Object.keys(config.done).forEach(slot => { config.done[slot] = true; });
+      } else if (previousStatus === 'completed' || config.status === 'unowned') {
+        Object.keys(config.done).forEach(slot => { config.done[slot] = false; });
+      }
+
+      setConfig(doll.name, config);
+      renderFarm();
+    }
+
+    function toggleDone(doll, slot) {
+      const config = getConfig(doll);
+      config.done[slot] = !config.done[slot];
+      config.status = Object.values(config.done).every(Boolean) ? 'completed' : 'tracked';
+      setConfig(doll.name, config);
+      renderFarm();
+    }
+
+    function resetDoll(doll) {
+      if (!confirm(`${doll.name}의 개인 구성과 완료 체크를 추천 기본값으로 되돌릴까요?`)) return;
+      const current = getConfig(doll);
+      const base = defaultConfig(doll);
+      base.status = current.status;
+      base.personalNote = current.personalNote;
+      base.noteInitialized = true;
+      setConfig(doll.name, base);
+      renderFarm();
+      showToast(`${doll.name} 구성을 추천값으로 복원했습니다.`);
+    }
+
+    function isConfigComplete(config) {
+      return config.status !== 'unowned' && (config.status === 'completed' || Object.values(config.done).every(Boolean));
+    }
+
+    function openEditor(doll) {
+      app.editorName = doll.name;
+      app.editorDraft = structuredCloneSafe(getConfig(doll));
+      renderEditor();
+      document.getElementById('editorBackdrop').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditor() {
+      document.getElementById('editorBackdrop').classList.remove('open');
+      document.body.style.overflow = '';
+      app.editorName = null;
+      app.editorDraft = null;
+    }
+
+    function renderEditor() {
+      const doll = findDoll(app.editorName);
+      if (!doll || !app.editorDraft) return;
+
+      document.getElementById('editorTitle').textContent = `${doll.name} 장비 구성`;
+      const groups = [
+        {
+          key: 'setOptions',
+          label: '세트 옵션',
+          help: '여러 개 선택 가능',
+          options: app.data.setOptions,
+          recommended: doll.setOptions,
+          selected: app.editorDraft.setOptions,
+          max: null
+        },
+        {
+          key: 'muzzle',
+          label: '총구 옵션',
+          help: '최대 4개',
+          options: app.data.statOptions,
+          recommended: doll.muzzle,
+          selected: app.editorDraft.muzzle,
+          max: 4
+        },
+        ...[0, 1, 2].map(index => ({
+          key: `part-${index}`,
+          label: `파츠 ${index + 1} 옵션`,
+          help: '최대 3개',
+          options: app.data.statOptions,
+          recommended: doll.part,
+          selected: app.editorDraft.parts[index],
+          max: 3
+        }))
+      ];
+
+      const body = document.getElementById('editorBody');
+      body.innerHTML = groups.map(group => `
+        <section class="editor-group">
+          <div class="editor-heading">
+            <strong>${escapeHtml(group.label)}</strong>
+            <span>${escapeHtml(group.help)} · 현재 ${group.selected.length}개</span>
+          </div>
+          <div class="choice-grid">
+            ${group.options.map(option => `
+              <button
+                class="choice-chip ${group.selected.includes(option) ? 'selected' : ''} ${group.recommended.includes(option) ? 'recommended' : ''}"
+                type="button"
+                data-editor-key="${group.key}"
+                data-value="${escapeAttr(option)}"
+                data-max="${group.max ?? ''}"
+              >${escapeHtml(option)}</button>`).join('')}
+          </div>
+        </section>`).join('');
+
+      body.querySelectorAll('[data-editor-key]').forEach(button => {
+        button.addEventListener('click', () => handleEditorChoice(button));
+      });
+    }
+
+    function handleEditorChoice(button) {
+      const key = button.dataset.editorKey;
+      const value = button.dataset.value;
+      const max = button.dataset.max ? Number(button.dataset.max) : null;
+      const selected = key === 'setOptions'
+        ? app.editorDraft.setOptions
+        : key === 'muzzle'
+          ? app.editorDraft.muzzle
+          : app.editorDraft.parts[Number(key.split('-')[1])];
+
+      const index = selected.indexOf(value);
+      if (index >= 0) {
+        selected.splice(index, 1);
+      } else {
+        if (max && selected.length >= max) {
+          showToast(`최대 ${max}개까지 선택할 수 있습니다.`, true);
+          return;
+        }
+        selected.push(value);
+      }
+
+      renderEditor();
+    }
+
+    function restoreRecommendedInEditor() {
+      const doll = findDoll(app.editorName);
+      if (!doll) return;
+      const status = app.editorDraft.status;
+      const personalNote = app.editorDraft.personalNote;
+      const noteInitialized = app.editorDraft.noteInitialized;
+      const done = structuredCloneSafe(app.editorDraft.done);
+      app.editorDraft = defaultConfig(doll);
+      app.editorDraft.status = status;
+      app.editorDraft.personalNote = personalNote;
+      app.editorDraft.noteInitialized = noteInitialized;
+      app.editorDraft.done = done;
+      renderEditor();
+      showToast('추천 옵션을 다시 선택했습니다.');
+    }
+
+    function saveEditor() {
+      const doll = findDoll(app.editorName);
+      if (!doll || !app.editorDraft) return;
+
+      if (app.editorDraft.status === 'none') app.editorDraft.status = 'tracked';
+      setConfig(doll.name, app.editorDraft);
+      closeEditor();
+      renderFarm();
+      showToast(`${doll.name} 구성을 저장했습니다.`);
+    }
+
+    function renderReference() {
+      if (!app.data) return;
+      const container = document.getElementById('referenceContent');
+      const sections = [];
+      const effective = app.data.dolls.map(doll => ({
+        doll,
+        config: getConfig(doll)
+      }));
+
+      const muzzleEntries = effective.map(({ doll, config }) => ({
+        doll,
+        label: doll.name,
+        options: config.muzzle
+      }));
+      const muzzleRows = groupReferenceEntries(muzzleEntries);
+      sections.push(referenceSection('총구 옵션', muzzleRows, true));
+
+      const selectedSetNames = new Set();
+      effective.forEach(({ config }) => {
+        config.setOptions.forEach(setOption => selectedSetNames.add(setOption));
+      });
+      const effectiveSetOptions = [
+        ...app.data.setOptions.filter(option => selectedSetNames.has(option)),
+        ...[...selectedSetNames].filter(option => !app.data.setOptions.includes(option))
+      ];
+
+      effectiveSetOptions.forEach(setOption => {
+        const entries = [];
+
+        effective
+          .filter(({ config }) => config.setOptions.includes(setOption))
+          .forEach(({ doll, config }) => {
+            const combinations = new Map();
+
+            config.parts.forEach((options, index) => {
+              const normalized = sortStatOptions(options);
+              if (!normalized.length) return;
+              const key = normalized.join(', ');
+              if (!combinations.has(key)) {
+                combinations.set(key, { options: normalized, slots: [] });
+              }
+              combinations.get(key).slots.push(index + 1);
+            });
+
+            combinations.forEach(value => {
+              const label = combinations.size === 1
+                ? doll.name
+                : `${doll.name} (파츠 ${value.slots.join('·')})`;
+              entries.push({ doll, label, options: value.options });
+            });
+          });
+
+        const rows = groupReferenceEntries(entries);
+        if (rows.length) sections.push(referenceSection(setOption, rows, false));
+      });
+
+      container.innerHTML = sections.join('') || '<div class="empty-state">표시할 개인 장비 구성이 없습니다.</div>';
+      app.referenceRendered = true;
+    }
+
+    function referenceWeapons() {
+      return app.data.weapons.filter(weapon => weapon && weapon !== '기타');
+    }
+
+    function sortStatOptions(options) {
+      return [...new Set(options || [])].sort((a, b) => {
+        const ai = app.data.statOptions.indexOf(a);
+        const bi = app.data.statOptions.indexOf(b);
+        const aRank = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+        const bRank = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+        return aRank - bRank || a.localeCompare(b, 'ko');
+      });
+    }
+
+    function groupReferenceEntries(entries) {
+      const map = new Map();
+      const weapons = referenceWeapons();
+
+      entries.forEach(entry => {
+        const weapon = entry.doll.weapon;
+        if (!weapons.includes(weapon)) return;
+
+        const options = sortStatOptions(entry.options);
+        if (!options.length) return;
+
+        const key = options.join(', ');
+        if (!map.has(key)) map.set(key, {});
+        if (!map.get(key)[weapon]) map.get(key)[weapon] = [];
+        if (!map.get(key)[weapon].includes(entry.label)) {
+          map.get(key)[weapon].push(entry.label);
+        }
+      });
+
+      return [...map.entries()]
+        .map(([combination, groupedWeapons]) => ({ combination, weapons: groupedWeapons }))
+        .sort((a, b) => a.combination.localeCompare(b.combination, 'ko'));
+    }
+
+    function referenceSection(title, rows, open) {
+      const weapons = referenceWeapons();
+      return `
+        <details class="reference-section" ${open ? 'open' : ''}>
+          <summary>${escapeHtml(title)} · ${rows.length}개 조합</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>옵션 조합</th>
+                  ${weapons.map(weapon => `<th>${escapeHtml(weapon)}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(row => `
+                  <tr>
+                    <td>${escapeHtml(row.combination)}</td>
+                    ${weapons.map(weapon => `
+                      <td class="cell-names">${escapeHtml((row.weapons[weapon] || []).join(', '))}</td>`).join('')}
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </details>`;
+    }
+
+    function toggleAllReferenceSections() {
+      const sections = [...document.querySelectorAll('.reference-section')];
+      if (!sections.length) return;
+      const shouldOpen = sections.some(section => !section.open);
+      sections.forEach(section => { section.open = shouldOpen; });
+      document.getElementById('toggleReferenceButton').textContent = shouldOpen ? '모두 접기' : '모두 펼치기';
+    }
+
+    function exportBackup() {
+      const payload = {
+        app: '소녀전선2 장비 파밍 도우미',
+        version: 4,
+        source: 'supabase-public-local-personal',
+        exportedAt: new Date().toISOString(),
+        personal: app.personal
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `gf2-parts-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function importBackup(event) {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      try {
+        const parsed = JSON.parse(await file.text());
+        const personal = parsed?.personal ?? parsed;
+        if (!personal || typeof personal !== 'object' || Array.isArray(personal)) {
+          throw new Error('올바른 백업 파일이 아닙니다.');
+        }
+        if (!confirm('현재 개인 데이터를 백업 파일 내용으로 교체할까요?')) return;
+        app.personal = personal;
+        savePersonalData();
+        migratePersonalNotes();
+        app.referenceRendered = false;
+        renderFarm();
+        if (app.activeTab === 'reference') renderReference();
+        showToast('백업 데이터를 가져왔습니다.');
+      } catch (error) {
+        showToast(error.message || '백업 파일을 읽지 못했습니다.', true);
+      }
+    }
+
+    async function resetAllPersonalData() {
+      if (!confirm('저장된 모든 상태, 옵션 구성, 완료 체크, 개인 비고를 삭제할까요?')) return;
+      app.personal = {};
+      localStorage.removeItem(personalStorageKey());
+      migratePersonalNotes();
+      app.referenceRendered = false;
+      renderFarm();
+      if (app.activeTab === 'reference') renderReference();
+      showToast('이 브라우저의 개인 데이터를 초기화했습니다.');
+    }
+
+    let toastTimer = null;
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.toggle('error', isError);
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replaceAll('`', '&#096;');
+    }
+
+    function structuredCloneSafe(value) {
+      if (typeof structuredClone === 'function') return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    init();
+  </script>
+</body>
+</html>
