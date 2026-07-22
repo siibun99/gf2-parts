@@ -817,8 +817,6 @@
       text-align: center;
     }
 
-    input[type="file"] { display: none; }
-
     @media (max-width: 800px) {
       .title-row { display: block; }
       .header-actions { justify-content: flex-start; margin-top: 12px; }
@@ -1455,15 +1453,21 @@
           <h1>소녀전선2 장비 파밍 도우미</h1>
           <p class="subtitle" id="sourceStatus">공용 데이터를 불러오는 중입니다…</p>
         </div>
-        <div class="header-actions">
-          <button class="button ghost theme-toggle" id="themeToggleButton" type="button" aria-label="밝은 화면으로 전환" title="밝은 화면으로 전환">
-            <span class="theme-icon" id="themeToggleIcon" aria-hidden="true">☀</span>
-          </button>
-          <button class="button ghost" id="exportButton" type="button">백업 내보내기</button>
-          <label class="button ghost" for="importInput">백업 가져오기</label>
-          <input id="importInput" type="file" accept="application/json,.json">
-          <button class="button danger" id="resetAllButton" type="button">개인 데이터 초기화</button>
-        </div>
+<div class="header-actions">
+  <button
+    class="button ghost theme-toggle"
+    id="themeToggleButton"
+    type="button"
+    aria-label="밝은 화면으로 전환"
+    title="밝은 화면으로 전환"
+  >
+    <span class="theme-icon" id="themeToggleIcon" aria-hidden="true">☀</span>
+  </button>
+
+  <button class="button danger" id="resetAllButton" type="button">
+    전체 초기화
+  </button>
+</div>
       </div>
 
       <nav class="tabs" aria-label="주요 화면">
@@ -1898,8 +1902,6 @@
         if (event.key === 'Escape') closeEditor();
       });
 
-      document.getElementById('exportButton').addEventListener('click', exportBackup);
-      document.getElementById('importInput').addEventListener('change', importBackup);
       document.getElementById('resetAllButton').addEventListener('click', resetAllPersonalData);
       document.getElementById('toggleReferenceButton').addEventListener('click', toggleAllReferenceSections);
     }
@@ -2502,40 +2504,27 @@
       URL.revokeObjectURL(url);
     }
 
-    async function importBackup(event) {
-      const file = event.target.files?.[0];
-      event.target.value = '';
-      if (!file) return;
+function resetAllPersonalData() {
+  const confirmed = confirm(
+    '이 브라우저에 저장된 모든 상태, 옵션 구성, 완료 체크, 개인 비고를 초기화할까요?\n\n삭제된 데이터는 복구할 수 없습니다.'
+  );
 
-      try {
-        const parsed = JSON.parse(await file.text());
-        const personal = parsed?.personal ?? parsed;
-        if (!personal || typeof personal !== 'object' || Array.isArray(personal)) {
-          throw new Error('올바른 백업 파일이 아닙니다.');
-        }
-        if (!confirm('현재 개인 데이터를 백업 파일 내용으로 교체할까요?')) return;
-        app.personal = personal;
-        savePersonalData();
-        migratePersonalNotes();
-        app.referenceRendered = false;
-        renderFarm();
-        if (app.activeTab === 'reference') renderReference();
-        showToast('백업 데이터를 가져왔습니다.');
-      } catch (error) {
-        showToast(error.message || '백업 파일을 읽지 못했습니다.', true);
-      }
-    }
+  if (!confirmed) return;
 
-    async function resetAllPersonalData() {
-      if (!confirm('저장된 모든 상태, 옵션 구성, 완료 체크, 개인 비고를 삭제할까요?')) return;
-      app.personal = {};
-      localStorage.removeItem(personalStorageKey());
-      migratePersonalNotes();
-      app.referenceRendered = false;
-      renderFarm();
-      if (app.activeTab === 'reference') renderReference();
-      showToast('이 브라우저의 개인 데이터를 초기화했습니다.');
-    }
+  app.personal = {};
+  localStorage.removeItem(personalStorageKey());
+
+  migratePersonalNotes();
+  app.referenceRendered = false;
+
+  renderFarm();
+
+  if (app.activeTab === 'reference') {
+    renderReference();
+  }
+
+  showToast('이 브라우저의 저장 데이터를 전체 초기화했습니다.');
+}
 
     let toastTimer = null;
     function showToast(message, isError = false) {
