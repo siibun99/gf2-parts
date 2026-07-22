@@ -1786,7 +1786,6 @@
         spreadsheetId: '',
         spreadsheetName: 'Supabase DB',
         sourceUrl: '',
-        loadedAt: new Intl.DateTimeFormat('ko-KR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()),
         dolls: rows.map(row => ({
           id: row.id,
           slug: row.slug,
@@ -1832,7 +1831,7 @@
       app.data = data;
       migratePersonalNotes();
       document.getElementById('sourceStatus').textContent =
-        `${data.spreadsheetName} · ${data.dolls.length}명 · 조회 ${data.loadedAt}`;
+        `${data.spreadsheetName} · ${data.dolls.length}인형`;
       document.querySelectorAll('[data-footer-source]').forEach(footer => {
         footer.textContent = '공용 인형 데이터는 Supabase에서 읽고, 개인 진행 상황은 이 브라우저에만 저장합니다.';
       });
