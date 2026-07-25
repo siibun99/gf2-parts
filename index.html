@@ -1548,6 +1548,7 @@
     const STORAGE_KEY = 'gf2-personal-farming-v2-supabase';
     const UI_STORAGE_KEY = 'gf2-personal-farming-ui-v2-supabase';
     const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
+    const PART_FORBIDDEN_OPTIONS = new Set(['치명타 피해']);
     const SLOT_LABELS = {
       muzzle: '총구',
       p1: '파츠 1',
@@ -1645,7 +1646,14 @@
       }
     }
 
+    function sanitizePartOptions(options) {
+      return [...new Set(Array.isArray(options) ? options : [])]
+        .filter(option => !PART_FORBIDDEN_OPTIONS.has(option))
+        .slice(0, 3);
+    }
+
     function defaultConfig(doll) {
+      const partOptions = sanitizePartOptions(doll.part);
       return {
         status: 'none',
         personalNote: doll.note || '',
@@ -1653,9 +1661,9 @@
         setOptions: [...doll.setOptions],
         muzzle: [...doll.muzzle],
         parts: [
-          [...doll.part],
-          [...doll.part],
-          [...doll.part]
+          [...partOptions],
+          [...partOptions],
+          [...partOptions]
         ],
         done: {
           muzzle: false,
@@ -1691,7 +1699,7 @@
         muzzle: Array.isArray(saved.muzzle) ? [...saved.muzzle].slice(0, 4) : base.muzzle,
         parts: [0, 1, 2].map(index => (
           Array.isArray(saved.parts?.[index])
-            ? [...saved.parts[index]].slice(0, 3)
+            ? sanitizePartOptions(saved.parts[index])
             : base.parts[index]
         )),
         done: {
@@ -1780,6 +1788,7 @@
       const statOptions = unique(rows.flatMap(row => [
         ...(row.recommended_muzzle || []), ...(row.recommended_parts || [])
       ]));
+      const partStatOptions = statOptions.filter(option => !PART_FORBIDDEN_OPTIONS.has(option));
       const weaponOrder = ['돌격소총','산탄총','기관단총','기관총','저격소총','권총','도검'];
       const attrOrder = ['물리','연소','빙결','전도','산성','탁류','공진'];
       const data = {
@@ -1794,7 +1803,7 @@
           attr: row.attribute,
           setOptions: row.recommended_sets || [],
           muzzle: row.recommended_muzzle || [],
-          part: row.recommended_parts || [],
+          part: sanitizePartOptions(row.recommended_parts),
           note: row.default_note || '',
           keyName: row.common_key || '',
           keyEffect: row.common_key_effect || '',
@@ -1812,6 +1821,7 @@
         })),
         setOptions,
         statOptions,
+        partStatOptions,
         weapons: orderedUnique(weaponOrder, rows.map(row => row.weapon_type).filter(x => x && x !== '기타')),
         attrs: orderedUnique(attrOrder, rows.map(row => row.attribute).filter(Boolean))
       };
@@ -2268,7 +2278,7 @@
           key: `part-${index}`,
           label: `파츠 ${index + 1} 옵션`,
           help: '최대 3개',
-          options: app.data.statOptions,
+          options: app.data.partStatOptions,
           recommended: doll.part,
           selected: app.editorDraft.parts[index],
           max: 3

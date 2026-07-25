@@ -4,6 +4,7 @@ const cfg = window.GF2_CONFIG || {};
 const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
 const PORTRAIT_DEFAULT = Object.freeze({ x: 0, y: -7, zoom: 250 });
 const PORTRAIT_ORIGINAL = Object.freeze({ x: 0, y: 0, zoom: 0 });
+const PART_FORBIDDEN_OPTIONS = new Set(['치명타 피해']);
 let db = null;
 let session = null;
 let dolls = [];
@@ -605,6 +606,13 @@ async function saveDoll(event) {
     return;
   }
 
+  const recommendedParts = splitOptions($('parts').value);
+  const forbiddenPartOption = recommendedParts.find(option => PART_FORBIDDEN_OPTIONS.has(option));
+  if (forbiddenPartOption) {
+    toast(`파츠 옵션에는 '${forbiddenPartOption}'을 사용할 수 없습니다.`, true);
+    return;
+  }
+
   try {
     const file = $('image').files?.[0];
     let imageUrl = $('removeImage').checked ? '' : editingImageUrl;
@@ -617,7 +625,7 @@ async function saveDoll(event) {
       attribute: $('attribute').value.trim(),
       recommended_sets: splitOptions($('sets').value),
       recommended_muzzle: splitOptions($('muzzle').value, 4),
-      recommended_parts: splitOptions($('parts').value, 3),
+      recommended_parts: recommendedParts.slice(0, 3),
       default_note: $('note').value.trim(),
       common_key: $('commonKey').value.trim(),
       common_key_effect: $('commonEffect').value.trim(),
