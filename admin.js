@@ -5,6 +5,8 @@ const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
 const PORTRAIT_DEFAULT = Object.freeze({ x: 0, y: -7, zoom: 250 });
 const PORTRAIT_ORIGINAL = Object.freeze({ x: 0, y: 0, zoom: 0 });
 const PART_FORBIDDEN_OPTIONS = new Set(['치명타 피해']);
+const IMAGE_UPLOAD_SIZE = 768;
+const IMAGE_UPLOAD_QUALITY = 0.84;
 let db = null;
 let session = null;
 let dolls = [];
@@ -49,6 +51,40 @@ function imageSource(url) {
   return new URL(url.replace(/^\//, ''), location.href).href;
 }
 
+async function optimizeImageForUpload(file) {
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  try {
+    const scale = Math.min(IMAGE_UPLOAD_SIZE / bitmap.width, IMAGE_UPLOAD_SIZE / bitmap.height);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const offsetX = Math.floor((IMAGE_UPLOAD_SIZE - width) / 2);
+    const offsetY = Math.floor((IMAGE_UPLOAD_SIZE - height) / 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = IMAGE_UPLOAD_SIZE;
+    canvas.height = IMAGE_UPLOAD_SIZE;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('이미지 변환을 시작할 수 없습니다.');
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(bitmap, offsetX, offsetY, width, height);
+
+    const blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, 'image/webp', IMAGE_UPLOAD_QUALITY);
+    });
+    if (!blob) throw new Error('WebP 이미지 변환에 실패했습니다.');
+
+    const baseName = file.name.replace(/\.[^.]+$/, '') || 'doll-image';
+    return new File([blob], `${baseName}.webp`, {
+      type: 'image/webp',
+      lastModified: Date.now()
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
 function applyTheme(theme, persist = true) {
   const next = theme === 'light' ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
@@ -90,7 +126,7 @@ function setImagePreview(url = '', stateText = '') {
     image.removeAttribute('src');
     preview.classList.remove('has-image');
     fallback.hidden = false;
-    $('imageStateText').textContent = stateText || 'PNG, JPEG, WebP · 최대 5MB';
+    $('imageStateText').textContent = stateText || 'PNG, JPEG, WebP · 최대 5MB · 저장 시 768px WebP로 자동 최적화';
     return;
   }
 
@@ -477,7 +513,7 @@ function renderDolls() {
     const visual = `
       <div class="thumb" style="${portraitStyle}">
         <span>${escapeHtml(doll.name)}</span>
-        ${src ? `<span class="thumb-position"><span class="thumb-zoom"><img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" onload="this.closest('.thumb')?.classList.add('has-image')" onerror="this.closest('.thumb-position')?.remove()"></span></span>` : ''}
+        ${src ? `<span class="thumb-position"><span class="thumb-zoom"><img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" loading="lazy" decoding="async" onload="this.closest('.thumb')?.classList.add('has-image')" onerror="this.closest('.thumb-position')?.remove()"></span></span>` : ''}
       </div>`;
     const statusClass = doll.is_active ? 'status-active' : 'status-inactive';
     return `
@@ -580,13 +616,13 @@ async function uploadImage(file, slug) {
   if (!file) return editingImageUrl;
   if (file.size > 5 * 1024 * 1024) throw new Error('이미지는 5MB 이하로 올려주세요.');
 
-  const extension = (file.name.split('.').pop() || 'webp').toLowerCase().replace(/[^a-z0-9]/g, '') || 'webp';
+  const optimizedFile = await optimizeImageForUpload(file);
   const safeSlug = slug.replace(/[^a-z0-9-]/g, '-');
-  const path = `${safeSlug}/${Date.now()}.${extension}`;
-  const { error } = await db.storage.from('doll-images').upload(path, file, {
-    cacheControl: '3600',
+  const path = `${safeSlug}/${Date.now()}.webp`;
+  const { error } = await db.storage.from('doll-images').upload(path, optimizedFile, {
+    cacheControl: '31536000',
     upsert: false,
-    contentType: file.type || undefined
+    contentType: 'image/webp'
   });
   if (error) throw error;
 
