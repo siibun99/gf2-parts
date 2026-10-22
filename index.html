@@ -1637,12 +1637,15 @@
       }
     }
 
-    function savePersonalData() {
+    function savePersonalData(personal = app.personal) {
       try {
-        localStorage.setItem(personalStorageKey(), JSON.stringify(app.personal));
+        localStorage.setItem(personalStorageKey(), JSON.stringify(personal));
+        app.personal = personal;
+        return true;
       } catch (error) {
         console.error('개인 데이터 저장 실패', error);
         showToast('브라우저에 저장하지 못했습니다.', true);
+        return false;
       }
     }
 
@@ -1675,7 +1678,7 @@
     }
 
     function getConfig(doll) {
-      const saved = app.personal[doll.name];
+      const saved = app.personal[doll.id] ?? app.personal[doll.name];
       const base = defaultConfig(doll);
 
       if (!saved || typeof saved !== 'object') return base;
@@ -1717,22 +1720,30 @@
       return config;
     }
 
-    function setConfig(name, config) {
-      app.personal[name] = config;
-      savePersonalData();
+    function setConfig(doll, config) {
+      const personal = { ...app.personal, [doll.id]: config };
+      delete personal[doll.name];
+      if (!savePersonalData(personal)) return false;
       app.referenceRendered = false;
       if (app.activeTab === 'reference') renderReference();
+      return true;
     }
 
     function migratePersonalNotes() {
       let changed = false;
+      const personal = { ...app.personal };
 
       app.data.dolls.forEach(doll => {
+        if (Object.hasOwn(personal, doll.name)) {
+          if (!Object.hasOwn(personal, doll.id)) personal[doll.id] = personal[doll.name];
+          delete personal[doll.name];
+          changed = true;
+        }
         if (!doll.note) return;
 
-        const saved = app.personal[doll.name];
+        const saved = personal[doll.id];
         if (!saved || typeof saved !== 'object') {
-          app.personal[doll.name] = {
+          personal[doll.id] = {
             personalNote: doll.note,
             noteInitialized: true
           };
@@ -1742,14 +1753,16 @@
 
         if (saved.noteInitialized === true) return;
 
-        if (typeof saved.personalNote !== 'string' || !saved.personalNote.trim()) {
-          saved.personalNote = doll.note;
-        }
-        saved.noteInitialized = true;
+        personal[doll.id] = {
+          ...saved,
+          personalNote: typeof saved.personalNote === 'string' && saved.personalNote.trim()
+            ? saved.personalNote : doll.note,
+          noteInitialized: true
+        };
         changed = true;
       });
 
-      if (changed) savePersonalData();
+      return !changed || savePersonalData(personal);
     }
 
     function findDoll(name) {
@@ -2192,7 +2205,7 @@
       const config = getConfig(doll);
       config.personalNote = event.target.value.trim();
       config.noteInitialized = true;
-      setConfig(doll.name, config);
+      if (!setConfig(doll, config)) return;
       showToast(`${doll.name} 개인 비고를 저장했습니다.`);
     }
 
@@ -2207,7 +2220,7 @@
         Object.keys(config.done).forEach(slot => { config.done[slot] = false; });
       }
 
-      setConfig(doll.name, config);
+      if (!setConfig(doll, config)) return;
       updateFarmCardState(doll, config);
     }
 
@@ -2215,7 +2228,10 @@
       const config = getConfig(doll);
       config.done[slot] = !config.done[slot];
       config.status = Object.values(config.done).every(Boolean) ? 'completed' : 'tracked';
-      setConfig(doll.name, config);
+      if (!setConfig(doll, config)) {
+        renderFarm();
+        return;
+      }
       updateFarmCardState(doll, config);
     }
 
@@ -2226,7 +2242,7 @@
       base.status = current.status;
       base.personalNote = current.personalNote;
       base.noteInitialized = true;
-      setConfig(doll.name, base);
+      if (!setConfig(doll, base)) return;
       renderFarm();
       showToast(`${doll.name} 구성을 추천값으로 복원했습니다.`);
     }
@@ -2354,7 +2370,7 @@
       if (!doll || !app.editorDraft) return;
 
       if (app.editorDraft.status === 'none') app.editorDraft.status = 'tracked';
-      setConfig(doll.name, app.editorDraft);
+      if (!setConfig(doll, app.editorDraft)) return;
       closeEditor();
       renderFarm();
       showToast(`${doll.name} 구성을 저장했습니다.`);
@@ -2499,7 +2515,8 @@
     function exportBackup() {
       const payload = {
         app: '소녀전선2 장비 파밍 도우미',
-        version: 4,
+        version: 5,
+        personalKey: 'doll-id',
         source: 'supabase-public-local-personal',
         exportedAt: new Date().toISOString(),
         personal: app.personal
@@ -2520,10 +2537,9 @@ function resetAllPersonalData() {
 
   if (!confirmed) return;
 
-  app.personal = {};
-  localStorage.removeItem(personalStorageKey());
+  if (!savePersonalData({})) return;
 
-  migratePersonalNotes();
+  const notesSaved = migratePersonalNotes();
   app.referenceRendered = false;
 
   renderFarm();
@@ -2532,7 +2548,7 @@ function resetAllPersonalData() {
     renderReference();
   }
 
-  showToast('이 브라우저의 저장 데이터를 전체 초기화했습니다.');
+  if (notesSaved) showToast('이 브라우저의 저장 데이터를 전체 초기화했습니다.');
 }
 
     let toastTimer = null;

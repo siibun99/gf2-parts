@@ -16,6 +16,7 @@ let previewObjectUrl = '';
 let portraitDrag = null;
 let panelHeightFrame = 0;
 let editorPanelObserver = null;
+let savingDoll = false;
 
 const $ = id => document.getElementById(id);
 
@@ -564,6 +565,7 @@ function handleListKeydown(event) {
 }
 
 function fillForm(doll) {
+  if (savingDoll) return;
   const pageScrollX = window.scrollX;
   const pageScrollY = window.scrollY;
   const list = $('dollList');
@@ -632,7 +634,7 @@ async function uploadImage(file, slug) {
 
 async function saveDoll(event) {
   event.preventDefault();
-  if (!session) return;
+  if (!session || savingDoll) return;
 
   const id = $('id').value.trim();
   const name = $('name').value.trim();
@@ -649,10 +651,15 @@ async function saveDoll(event) {
     return;
   }
 
+  savingDoll = true;
+  const wasInert = $('adminApp').inert;
+  const loginDisabled = $('loginButton').disabled;
+  $('adminApp').inert = true;
+  $('adminApp').setAttribute('aria-busy', 'true');
+  $('loginButton').disabled = true;
   try {
     const file = $('image').files?.[0];
-    let imageUrl = $('removeImage').checked ? '' : editingImageUrl;
-    if (file) imageUrl = await uploadImage(file, slug);
+    const imageUrl = $('removeImage').checked ? '' : editingImageUrl;
 
     const payload = {
       slug,
@@ -672,6 +679,7 @@ async function saveDoll(event) {
       portrait_offset_y: clampNumber($('portraitOffsetY').value, PORTRAIT_DEFAULT.y, -50, 50),
       is_active: $('active').checked
     };
+    if (file) payload.image_url = await uploadImage(file, slug);
 
     const query = id
       ? db.from('dolls').update(payload).eq('id', id)
@@ -685,10 +693,16 @@ async function saveDoll(event) {
   } catch (error) {
     console.error(error);
     toast(error.message || '저장하지 못했습니다.', true);
+  } finally {
+    savingDoll = false;
+    $('adminApp').inert = wasInert;
+    $('adminApp').removeAttribute('aria-busy');
+    $('loginButton').disabled = loginDisabled;
   }
 }
 
 async function deleteDoll(doll) {
+  if (savingDoll) return;
   if (!confirm(`${doll.name}을(를) DB에서 삭제할까요?\n일반적으로는 수정 화면에서 “사이트에 표시”를 끄는 편이 안전합니다.`)) return;
   const { error } = await db.from('dolls').delete().eq('id', doll.id);
   if (error) {
