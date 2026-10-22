@@ -17,6 +17,7 @@ let portraitDrag = null;
 let panelHeightFrame = 0;
 let editorPanelObserver = null;
 let savingDoll = false;
+let sendingLogin = false;
 
 const $ = id => document.getElementById(id);
 
@@ -316,6 +317,11 @@ async function init() {
 function bindEvents() {
   $('themeToggleButton').addEventListener('click', toggleTheme);
   $('loginButton').addEventListener('click', handleLogin);
+  $('loginForm').addEventListener('submit', sendLoginLink);
+  $('cancelLoginButton').addEventListener('click', () => {
+    $('loginPanel').hidden = true;
+    $('loginButton').focus();
+  });
   $('clearButton').addEventListener('click', clearForm);
   $('dollForm').addEventListener('submit', saveDoll);
   $('dollList').addEventListener('click', handleListClick);
@@ -345,24 +351,47 @@ async function handleLogin() {
     return;
   }
 
-  const email = prompt('관리자 로그인 링크를 받을 이메일 주소를 입력해주세요.');
-  if (!email) return;
-
-  const redirectTo = new URL('admin.html', location.href).href;
-  const { error } = await db.auth.signInWithOtp({
-    email: email.trim(),
-    options: { emailRedirectTo: redirectTo }
-  });
-
-  if (error) {
-    toast(error.message || '로그인 메일 발송에 실패했습니다.', true);
-    return;
-  }
-  toast('이메일로 관리자 로그인 링크를 보냈습니다.');
+  $('loginPanel').hidden = false;
+  $('loginEmail').focus();
 }
+
+async function sendLoginLink(event) {
+  event.preventDefault();
+  if (!db || session || sendingLogin) return;
+  const input = $('loginEmail');
+  input.value = input.value.trim();
+  if (!$('loginForm').reportValidity()) return;
+  const status = $('loginStatus');
+  const button = $('sendLoginButton');
+  sendingLogin = true;
+  input.disabled = true;
+  button.disabled = true;
+  button.textContent = '보내는 중…';
+  status.classList.remove('error');
+  status.textContent = '로그인 링크를 보내고 있습니다.';
+  try {
+    const redirectTo = new URL('admin.html', location.href).href;
+    const { error } = await db.auth.signInWithOtp({
+      email: input.value,
+      options: { emailRedirectTo: redirectTo }
+    });
+    if (error) throw error;
+    status.textContent = '로그인 링크를 보냈습니다. 받은편지함과 스팸함을 확인해주세요. 링크가 만료된 경우 다시 요청해주세요.';
+  } catch (error) {
+    status.classList.add('error');
+    status.textContent = error.message || '로그인 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.';
+  } finally {
+    sendingLogin = false;
+    input.disabled = false;
+    button.disabled = false;
+    button.textContent = '로그인 링크 보내기';
+  }
+}
+
 
 async function applySession(nextSession) {
   session = nextSession;
+  if (session) $('loginPanel').hidden = true;
   $('loginButton').textContent = session ? '로그아웃' : '이메일 로그인';
   $('adminApp').hidden = true;
 
