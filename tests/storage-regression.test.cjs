@@ -314,3 +314,18 @@ test('all shipped script files parse and HTML has no inline executable handlers'
   for(const tag of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)){assert.match(tag[1],/\bsrc=/);assert.equal(tag[2].trim(),'');}
  }
 });
+
+test('reference tab selected before data arrives renders once loading completes', async () => {
+  const c = userContext();
+  c.document = { querySelectorAll: () => [], getElementById: () => ({ classList: { toggle() {} } }) };
+  vm.runInContext(`
+    renderFilterChips = () => {};
+    renderProfileButtons = () => {};
+    updateStorageWarning = () => {};
+    globalThis.referenceLoadRenders = 0;
+    renderReference = () => { referenceLoadRenders++; };
+    app.activeTab = 'reference';
+  `, c);
+  await run(c, `await handleDataLoaded({ ...app.data, weapons: ['돌격소총'], spreadsheetName: 'test' });`);
+  assert.equal(c.referenceLoadRenders, 1);
+});

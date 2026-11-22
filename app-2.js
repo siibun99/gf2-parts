@@ -366,6 +366,7 @@
       renderFilterChips();
       document.getElementById('hideUnownedButton').classList.toggle('active', app.hideUnowned);
       renderFarm();
+      if (app.activeTab === 'reference') renderReference();
     }
 
     function handleDataFailure(error) {
@@ -1005,7 +1006,7 @@
 
     function referenceCards(title, rows) {
       return '<h2 class="reference-title">' + escapeHtml(title) + '</h2><p class="subtitle">아래 옵션 조합을 필요로 하는 인형입니다. 게임 내 자동 잠금과 연동되지 않습니다.</p><div class="plan-grid">' + rows.map((row, index) => {
-        const groups = Object.entries(row.weapons).filter(([, names]) => names.length);
+        const groups = referenceWeapons().map(weapon => [weapon, row.weapons[weapon] || []]).filter(([, names]) => names.length);
         return '<article class="plan-card"><h3>옵션 조합 ' + (index + 1) + '</h3><div class="plan-options">' + row.combination.split(', ').map(option => '<span>' + escapeHtml(option) + '</span>').join('') + '</div>' + groups.map(([weapon, names]) => '<div class="plan-dolls"><strong>' + escapeHtml(weapon) + '</strong><div>' + names.map(name => '<span class="doll-name-chip">' + escapeHtml(name) + '</span>').join('') + '</div></div>').join('') + '</article>';
       }).join('') + '</div>';
     }
