@@ -7,20 +7,7 @@
   <title>페이지를 찾을 수 없습니다 | 소녀전선2 장비 파밍 도우미</title>
   <link rel="icon" type="image/png" href="assets/gf2-site-logo.png">
   <link rel="apple-touch-icon" href="assets/gf2-site-logo.png">
-  <script>
-    (() => {
-      const key = 'gf2-ui-theme-v1';
-      try {
-        const saved = localStorage.getItem(key);
-        const theme = saved === 'light' || saved === 'dark'
-          ? saved
-          : (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        document.documentElement.dataset.theme = theme;
-      } catch (_) {
-        document.documentElement.dataset.theme = 'dark';
-      }
-    })();
-  </script>
+  <script src="not-found-1.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -303,6 +290,7 @@
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
     }
   </style>
+  <link rel="stylesheet" href="improvements.css">
 </head>
 <body>
   <header class="app-header">
@@ -338,40 +326,6 @@
     </section>
   </main>
 
-  <script>
-    (() => {
-      const themeKey = 'gf2-ui-theme-v1';
-      const root = document.documentElement;
-      const button = document.getElementById('themeToggle');
-      const icon = document.getElementById('themeIcon');
-      const pathBox = document.getElementById('requestedPath');
-      const backButton = document.getElementById('backButton');
-
-      function applyTheme(theme) {
-        const nextTheme = theme === 'light' ? 'light' : 'dark';
-        root.dataset.theme = nextTheme;
-        const isDark = nextTheme === 'dark';
-        icon.textContent = isDark ? '☀' : '🌙';
-        const label = isDark ? '밝은 화면으로 전환' : '어두운 화면으로 전환';
-        button.setAttribute('aria-label', label);
-        button.title = label;
-      }
-
-      applyTheme(root.dataset.theme);
-
-      button.addEventListener('click', () => {
-        const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-        applyTheme(nextTheme);
-        try { localStorage.setItem(themeKey, nextTheme); } catch (_) {}
-      });
-
-      pathBox.textContent = `${location.pathname}${location.search}${location.hash}`;
-
-      backButton.addEventListener('click', () => {
-        if (history.length > 1) history.back();
-        else location.href = '/';
-      });
-    })();
-  </script>
+  <script src="not-found-2.js"></script>
 </body>
 </html>

@@ -5,13 +5,7 @@ const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
 const PORTRAIT_DEFAULT = Object.freeze({ x: 0, y: -7, zoom: 250 });
 const PORTRAIT_ORIGINAL = Object.freeze({ x: 0, y: 0, zoom: 0 });
 const PART_FORBIDDEN_OPTIONS = new Set(['치명타 피해']);
-const OPTION_CATALOG = {
-  weapon: ['돌격소총', '산탄총', '기관단총', '기관총', '저격소총', '권총', '도검'],
-  attribute: ['물리', '연소', '빙결', '전도', '산성', '탁류', '공진'],
-  sets: ['실탄 증폭', '작열 증폭', '빙점 증폭', '자력 증폭', '강산 증폭', '격류 증폭', '육박 강공', '정점 소환', '결전 추진', '위상 타격', '전술 연산', '응급 회복'],
-  muzzle: ['공격', '공격 보너스', '치명타', '치명타 피해', '체력', '체력 보너스', '방어', '방어 보너스'],
-  parts: ['공격', '공격 보너스', '치명타', '체력', '체력 보너스', '방어', '방어 보너스']
-};
+const OPTION_CATALOG = window.GF2_OPTIONS;
 const OPTION_COLUMNS = { weapon: 'weapon_type', attribute: 'attribute', sets: 'recommended_sets', muzzle: 'recommended_muzzle', parts: 'recommended_parts' };
 const OPTION_LIMITS = { sets: Infinity, muzzle: 4, parts: 3 };
 
@@ -49,7 +43,10 @@ function toggleAdminOption(key, value) {
     selected.push(value);
   }
   $(key).value = selected.join(', ');
+  const focusValue = value;
   renderOptionChoices();
+  [...$(key + 'Choices').querySelectorAll('button')].find(button => button.dataset.option === focusValue)?.focus();
+  preserveDraft();
 }
 const IMAGE_UPLOAD_SIZE = 768;
 const IMAGE_UPLOAD_QUALITY = 0.84;
@@ -64,6 +61,34 @@ let panelHeightFrame = 0;
 let editorPanelObserver = null;
 let savingDoll = false;
 let sendingLogin = false;
+let loginRetryAt = 0;
+let editingVersion = null;
+let cleanFingerprint = '';
+const DRAFT_KEY = 'gf2-admin-draft-v1';
+const EDIT_FIELDS = ['id','name','slug','weapon','attribute','sets','muzzle','parts','note','commonKey','commonEffect','order','portraitScale','portraitOffsetX','portraitOffsetY'];
+function formValues() {
+  return Object.fromEntries(EDIT_FIELDS.map(id => [id, $(id).value]).concat([['active', $('active').checked], ['removeImage', $('removeImage').checked]]));
+}
+function fingerprint() {
+  const file = $('image').files?.[0];
+  return JSON.stringify([formValues(), file ? [file.name, file.size, file.lastModified] : null]);
+}
+function hasUnsavedChanges() { return cleanFingerprint !== '' && fingerprint() !== cleanFingerprint; }
+function markClean() { cleanFingerprint = fingerprint(); try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {} }
+function preserveDraft() {
+  if (!hasUnsavedChanges()) return;
+  try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ userId: session?.user?.id, values: formValues(), version: editingVersion, imageUrl: editingImageUrl })); } catch (_) {}
+  $('saveStatus').textContent = '저장하지 않은 변경이 있습니다. 텍스트 임시본은 이 탭에 보관됩니다.';
+}
+async function allowDiscard() {
+  return !hasUnsavedChanges() || await askConfirmation('저장하지 않은 변경이 있습니다. 변경 내용을 버리고 이동할까요?');
+}
+function updateLoginCooldown() {
+  const seconds = Math.max(0, Math.ceil((loginRetryAt - Date.now()) / 1000));
+  $('sendLoginButton').disabled = sendingLogin || seconds > 0;
+  $('sendLoginButton').textContent = sendingLogin ? '보내는 중…' : seconds ? seconds + '초 후 다시 요청' : '로그인 링크 보내기';
+  if (seconds > 0) setTimeout(updateLoginCooldown, 1000);
+}
 
 const $ = id => document.getElementById(id);
 
@@ -102,6 +127,7 @@ function imageSource(url) {
 async function optimizeImageForUpload(file) {
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   try {
+    if (bitmap.width * bitmap.height > 40000000) throw Error('이미지는 4천만 픽셀 이하로 올려주세요.');
     const scale = Math.min(IMAGE_UPLOAD_SIZE / bitmap.width, IMAGE_UPLOAD_SIZE / bitmap.height);
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
@@ -121,7 +147,7 @@ async function optimizeImageForUpload(file) {
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, 'image/webp', IMAGE_UPLOAD_QUALITY);
     });
-    if (!blob) throw new Error('WebP 이미지 변환에 실패했습니다.');
+    if (!blob || blob.type !== 'image/webp') throw new Error('이 브라우저에서 WebP 이미지 변환에 실패했습니다.');
 
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'doll-image';
     return new File([blob], `${baseName}.webp`, {
@@ -356,7 +382,8 @@ async function init() {
   const { data: { session: currentSession } } = await db.auth.getSession();
   await applySession(currentSession);
   db.auth.onAuthStateChange((_event, nextSession) => {
-    setTimeout(() => applySession(nextSession), 0);
+    if (nextSession?.user?.id === session?.user?.id) { session = nextSession; return; }
+    setTimeout(() => applySession(nextSession).catch(error => toast(error.message, true)), 0);
   });
 }
 
@@ -368,7 +395,33 @@ function bindEvents() {
     $('loginPanel').hidden = true;
     $('loginButton').focus();
   });
-  $('clearButton').addEventListener('click', clearForm);
+  $('clearButton').addEventListener('click', async () => { if (await allowDiscard()) clearForm(); });
+  $('dollForm').addEventListener('input', preserveDraft);
+  $('dollForm').addEventListener('change', preserveDraft);
+  $('deleteSelectedButton').addEventListener('click', () => {
+    const doll = dolls.find(item => item.id === $('id').value);
+    if (doll) deleteDoll(doll);
+  });
+  $('restoreDraftButton').addEventListener('click', async () => {
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
+      if (!draft || draft.userId !== session?.user?.id) throw Error('이 계정의 임시본이 없습니다.');
+      if (!await allowDiscard()) return;
+      for (const id of EDIT_FIELDS) $(id).value = draft.values[id] || '';
+      $('active').checked = Boolean(draft.values.active); $('removeImage').checked = Boolean(draft.values.removeImage);
+      editingVersion = draft.version; editingImageUrl = draft.imageUrl || ''; $('image').value = '';
+      renderOptionChoices(); setImagePreview(editingImageUrl); updatePortraitPreviewTransform();
+      $('formTitle').textContent = '임시본 복원';
+      $('saveStatus').textContent = '임시본을 복원했습니다. 이미지 파일은 다시 선택해주세요. 저장하면 충돌 여부를 확인합니다.';
+    } catch (error) { toast(error.message, true); }
+  });
+  window.addEventListener('beforeunload', event => {
+    if (hasUnsavedChanges() || savingDoll) { event.preventDefault(); event.returnValue = ''; }
+  });
+  document.querySelector('a[href="index.html"]').addEventListener('click', async event => {
+    if (!hasUnsavedChanges()) return;
+    event.preventDefault(); if (await allowDiscard()) { markClean(); location.href = 'index.html'; }
+  });
   $('dollForm').addEventListener('submit', saveDoll);
   $('dollForm').addEventListener('click', event => {
     const button = event.target.closest('[data-option-group]');
@@ -397,6 +450,8 @@ async function handleLogin() {
   if (!db) return;
 
   if (session) {
+    if (!await allowDiscard()) return;
+    markClean();
     await db.auth.signOut();
     return;
   }
@@ -407,7 +462,7 @@ async function handleLogin() {
 
 async function sendLoginLink(event) {
   event.preventDefault();
-  if (!db || session || sendingLogin) return;
+  if (!db || session || sendingLogin || Date.now() < loginRetryAt) return;
   const input = $('loginEmail');
   input.value = input.value.trim();
   if (!$('loginForm').reportValidity()) return;
@@ -423,18 +478,22 @@ async function sendLoginLink(event) {
     const redirectTo = new URL('admin.html', location.href).href;
     const { error } = await db.auth.signInWithOtp({
       email: input.value,
-      options: { emailRedirectTo: redirectTo }
+      options: { emailRedirectTo: redirectTo, shouldCreateUser: false }
     });
     if (error) throw error;
+    loginRetryAt = Date.now() + 60000;
     status.textContent = '로그인 링크를 보냈습니다. 받은편지함과 스팸함을 확인해주세요. 링크가 만료된 경우 다시 요청해주세요.';
   } catch (error) {
     status.classList.add('error');
-    status.textContent = error.message || '로그인 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    loginRetryAt = Date.now() + 60000;
+    status.textContent = /rate.limit/i.test(error.message || '')
+      ? '메일 발송 제한에 도달했습니다. 반복 요청을 멈추고 잠시 후 다시 시도해주세요. 이 대기 표시는 서버 제한 해제 시각을 보장하지 않습니다.'
+      : error.message || '로그인 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.';
   } finally {
     sendingLogin = false;
     input.disabled = false;
     button.disabled = false;
-    button.textContent = '로그인 링크 보내기';
+    updateLoginCooldown();
   }
 }
 
@@ -474,6 +533,8 @@ async function applySession(nextSession) {
   $('notice').textContent = '인형 공용 DB와 일러스트를 관리합니다. 일반 이용자 개인 진행 데이터에는 접근하지 않습니다.';
   $('adminApp').hidden = false;
   await loadDolls();
+  if (!cleanFingerprint) cleanFingerprint = fingerprint();
+  try { $('restoreDraftButton').hidden = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null')?.userId !== session.user.id; } catch (_) {}
   syncAdminPanelHeight();
 }
 
@@ -493,7 +554,7 @@ async function loadDolls() {
   renderOptionChoices();
   renderDolls();
   syncAdminPanelHeight();
-  if (!$('id').value.trim()) setNewDollDefaults();
+  if (!$('id').value.trim() && !hasUnsavedChanges()) { setNewDollDefaults(); cleanFingerprint = fingerprint(); }
 }
 
 function normalizeSearch(value) {
@@ -594,7 +655,7 @@ function renderDolls() {
     const visual = `
       <div class="thumb" style="${portraitStyle}">
         <span>${escapeHtml(doll.name)}</span>
-        ${src ? `<span class="thumb-position"><span class="thumb-zoom"><img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" loading="lazy" decoding="async" onload="this.closest('.thumb')?.classList.add('has-image')" onerror="this.closest('.thumb-position')?.remove()"></span></span>` : ''}
+        ${src ? `<span class="thumb-position"><span class="thumb-zoom"><img src="${escapeHtml(src)}" alt="${escapeHtml(doll.name)} 일러스트" loading="lazy" decoding="async"></span></span>` : ''}
       </div>`;
     const statusClass = doll.is_active ? 'status-active' : 'status-inactive';
     return `
@@ -607,7 +668,7 @@ function renderDolls() {
         </div>
         <div class="row-actions">
           <button type="button" data-action="edit">수정</button>
-          <button type="button" class="danger" data-action="delete">삭제</button>
+          <button type="button" data-action="deactivate">${doll.is_active ? '비활성화' : '활성화'}</button>
         </div>
       </article>`;
   }).join('');
@@ -621,8 +682,8 @@ function handleListClick(event) {
   if (!doll) return;
 
   const actionButton = event.target.closest('[data-action]');
-  if (actionButton?.dataset.action === 'delete') {
-    deleteDoll(doll);
+  if (actionButton?.dataset.action === 'deactivate') {
+    toggleDollActive(doll);
     return;
   }
 
@@ -644,8 +705,9 @@ function handleListKeydown(event) {
   fillForm(doll);
 }
 
-function fillForm(doll) {
-  if (savingDoll) return;
+async function fillForm(doll) {
+  if (savingDoll || !await allowDiscard()) return;
+  editingVersion = doll.updated_at;
   const pageScrollX = window.scrollX;
   const pageScrollY = window.scrollY;
   const list = $('dollList');
@@ -672,6 +734,9 @@ function fillForm(doll) {
   editingImageUrl = doll.image_url || '';
   setImagePreview(editingImageUrl);
   setPortraitControls(doll);
+  markClean();
+  $('saveStatus').textContent = '';
+  $('deleteSelectedButton').disabled = false;
 
   // 목록에서 선택한 위치를 그대로 유지한다. 폼 입력칸 포커스로 인한 자동 스크롤도 막는다.
   try { $('name').focus({ preventScroll: true }); } catch (_) {}
@@ -682,6 +747,7 @@ function fillForm(doll) {
 }
 
 function clearForm() {
+  editingVersion = null;
   $('dollForm').reset();
   for (const key of ['sets', 'muzzle', 'parts', 'weapon', 'attribute']) $(key).value = '';
   renderOptionChoices();
@@ -695,10 +761,13 @@ function clearForm() {
   setPortraitControls();
   observeAdminPanelHeight();
   setNewDollDefaults();
+  markClean();
+  $('deleteSelectedButton').disabled = true;
 }
 
 async function uploadImage(file, slug) {
   if (!file) return editingImageUrl;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw Error('PNG, JPG, WebP 이미지를 선택해주세요.');
   if (file.size > 5 * 1024 * 1024) throw new Error('이미지는 5MB 이하로 올려주세요.');
 
   const optimizedFile = await optimizeImageForUpload(file);
@@ -744,6 +813,8 @@ async function saveDoll(event) {
   $('adminApp').inert = true;
   $('adminApp').setAttribute('aria-busy', 'true');
   $('loginButton').disabled = true;
+  $('saveDollButton').textContent = '저장 중…';
+  $('saveStatus').textContent = '이미지와 인형 정보를 저장하고 있습니다…';
   try {
     const file = $('image').files?.[0];
     const imageUrl = $('removeImage').checked ? '' : editingImageUrl;
@@ -766,13 +837,16 @@ async function saveDoll(event) {
       portrait_offset_y: clampNumber($('portraitOffsetY').value, PORTRAIT_DEFAULT.y, -50, 50),
       is_active: $('active').checked
     };
+    if (id && !editingVersion) throw Error('수정 버전 정보가 없습니다. 목록에서 인형을 다시 선택해주세요.');
     if (file) payload.image_url = await uploadImage(file, slug);
-
     const query = id
-      ? db.from('dolls').update(payload).eq('id', id)
+      ? db.from('dolls').update(payload).eq('id', id).eq('updated_at', editingVersion)
       : db.from('dolls').insert(payload);
-    const { error } = await query;
+    const { data: saved, error } = await query.select('id,updated_at').maybeSingle();
     if (error) throw error;
+    if (!saved) throw Error('다른 탭에서 수정·삭제한 인형입니다. 입력 내용은 유지됩니다. 새로고침 후 최신 정보와 비교해주세요.');
+    markClean();
+    $('saveStatus').textContent = '저장 완료';
 
     toast(id ? '인형 정보를 수정했습니다.' : '새 인형을 추가했습니다.');
     await loadDolls();
@@ -780,25 +854,51 @@ async function saveDoll(event) {
   } catch (error) {
     console.error(error);
     toast(error.message || '저장하지 못했습니다.', true);
+    $('saveStatus').textContent = error.message || '저장 실패: 입력은 유지됩니다.';
   } finally {
     savingDoll = false;
     $('adminApp').inert = wasInert;
     $('adminApp').removeAttribute('aria-busy');
     $('loginButton').disabled = loginDisabled;
+    $('saveDollButton').textContent = '저장';
   }
+}
+
+async function toggleDollActive(doll) {
+  if (savingDoll || !await allowDiscard()) return;
+  if (!await askConfirmation(doll.name + (doll.is_active ? '을(를) 사이트에서 숨길까요? 개인 기록과 이미지는 삭제되지 않습니다.' : '을(를) 사이트에 표시할까요?'))) return;
+  if (savingDoll) return;
+  savingDoll = true;
+  const wasInert = $('adminApp').inert;
+  const loginDisabled = $('loginButton').disabled;
+  $('adminApp').inert = true;
+  $('loginButton').disabled = true;
+  try {
+    const { data, error } = await db.from('dolls').update({ is_active: !doll.is_active }).eq('id', doll.id).eq('updated_at', doll.updated_at).select('id').maybeSingle();
+    if (error) throw error;
+    if (!data) throw Error('다른 곳에서 수정한 인형입니다. 새로고침해주세요.');
+    clearForm(); await loadDolls(); toast('표시 상태를 변경했습니다.');
+  } catch (error) { toast(error.message, true); }
+  finally { savingDoll = false; $('adminApp').inert = wasInert; $('loginButton').disabled = loginDisabled; }
 }
 
 async function deleteDoll(doll) {
+  if (savingDoll || !await allowDiscard()) return;
+  if (!await askConfirmation(doll.name + '을(를) 영구 삭제할까요? 복구할 수 없습니다. 일반적으로 비활성화를 권장합니다.')) return;
   if (savingDoll) return;
-  if (!confirm(`${doll.name}을(를) DB에서 삭제할까요?\n일반적으로는 수정 화면에서 “사이트에 표시”를 끄는 편이 안전합니다.`)) return;
-  const { error } = await db.from('dolls').delete().eq('id', doll.id);
-  if (error) {
-    toast(error.message || '삭제하지 못했습니다.', true);
-    return;
-  }
-  toast('인형을 삭제했습니다.');
-  if ($('id').value === doll.id) clearForm();
-  await loadDolls();
+  savingDoll = true;
+  const wasInert = $('adminApp').inert;
+  const loginDisabled = $('loginButton').disabled;
+  $('adminApp').inert = true;
+  $('loginButton').disabled = true;
+  try {
+    const version = $('id').value === doll.id ? editingVersion : doll.updated_at;
+    const { data, error } = await db.from('dolls').delete().eq('id', doll.id).eq('updated_at', version).select('id').maybeSingle();
+    if (error) throw error;
+    if (!data) throw Error('다른 곳에서 수정한 인형입니다. 새로고침해주세요.');
+    clearForm(); await loadDolls(); toast('인형을 삭제했습니다. 이미지 정리는 운영 점검에서 별도로 수행합니다.');
+  } catch (error) { toast(error.message, true); }
+  finally { savingDoll = false; $('adminApp').inert = wasInert; $('loginButton').disabled = loginDisabled; }
 }
 
-init();
+init().catch(error => { $('authState').textContent = '관리자 화면을 불러오지 못했습니다.'; $('notice').textContent = error.message || '새로고침 후 다시 시도해주세요.'; });

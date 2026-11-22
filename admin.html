@@ -6,20 +6,7 @@
   <title>GF2 DB 관리자</title>
   <link rel="icon" type="image/png" href="assets/gf2-site-logo.png">
   <link rel="apple-touch-icon" href="assets/gf2-site-logo.png">
-  <script>
-    (() => {
-      const key = 'gf2-ui-theme-v1';
-      try {
-        const saved = localStorage.getItem(key);
-        const theme = saved === 'light' || saved === 'dark'
-          ? saved
-          : (window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        document.documentElement.dataset.theme = theme;
-      } catch (_) {
-        document.documentElement.dataset.theme = 'dark';
-      }
-    })();
-  </script>
+  <script src="admin-theme-1.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -703,6 +690,7 @@
     }
 
   </style>
+  <link rel="stylesheet" href="improvements.css">
 </head>
 <body>
   <header class="app-header">
@@ -748,6 +736,7 @@
           </div>
         </div>
 
+        <button id="restoreDraftButton" type="button" hidden>이 탭의 임시본 복원</button>
         <form id="dollForm">
           <input id="id" type="hidden">
 
@@ -820,8 +809,10 @@
 
           <div class="form-actions">
             <button id="clearButton" type="button">새로 작성</button>
-            <button class="primary" type="submit">저장</button>
+            <button id="saveDollButton" class="primary" type="submit">저장</button>
           </div>
+        <p id="saveStatus" class="admin-save-status" role="status"></p>
+          <details class="danger-zone"><summary>위험 작업</summary><p>가능하면 목록에서 비활성화를 사용해주세요.</p><button id="deleteSelectedButton" class="danger" type="button" disabled>선택한 인형 영구 삭제</button></details>
         </form>
       </section>
 
@@ -845,8 +836,10 @@
 
   <div id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="vendor/supabase.js" integrity="sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ"></script>
   <script src="config.js"></script>
+  <script src="options.js"></script>
+  <script src="ui-common.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>
