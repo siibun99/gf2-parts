@@ -71,13 +71,13 @@ dialog::backdrop { background: #081b25aa; }
   --reference-completed-bg: #c9e7da;
   --reference-completed-line: #6ba78e;
 }
-.doll-name-chip.is-unowned, #referenceFilters [data-reference-filter="referenceHideUnowned"] {
+.reference-table-name.is-unowned, .doll-name-chip.is-unowned, #referenceFilters [data-reference-filter="referenceHideUnowned"] {
   --status-bg: var(--reference-unowned-bg); --status-line: var(--reference-unowned-line);
 }
-.doll-name-chip.is-completed, #referenceFilters [data-reference-filter="referenceHideCompleted"] {
+.reference-table-name.is-completed, .doll-name-chip.is-completed, #referenceFilters [data-reference-filter="referenceHideCompleted"] {
   --status-bg: var(--reference-completed-bg); --status-line: var(--reference-completed-line);
 }
-.doll-name-chip.is-unowned, .doll-name-chip.is-completed {
+.reference-table-name.is-unowned, .doll-name-chip.is-unowned, .doll-name-chip.is-completed, .reference-table-name.is-completed {
   background: var(--status-bg); border-color: var(--status-line);
 }
 #referenceFilters .filter-chip { display: inline-flex; align-items: center; gap: 7px; }
@@ -97,3 +97,9 @@ dialog::backdrop { background: #081b25aa; }
   .reference-controls input[type="search"] { width: 100%; }
   #referenceCount { padding-bottom: 0; }
 }
+
+/* Compact table labels share the card palette, with additional text cues. */
+.reference-controls #toggleReferenceButton { height: 40px; margin: 0; white-space: nowrap; align-self: end; }
+.reference-table-name { display: inline-block; max-width: 100%; margin: 2px 3px 2px 0; padding: 1px 4px; border-radius: 3px; vertical-align: top; overflow-wrap: anywhere; }
+.reference-table-name.is-unowned { text-decoration: line-through; text-decoration-thickness: 1px; }
+.reference-table-name.is-completed { font-weight: 700; }

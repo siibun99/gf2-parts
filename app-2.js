@@ -1011,9 +1011,9 @@
       }).join('') + '</div>';
     }
 
-    function referenceNameChip(name, state) {
+    function referenceNameChip(name, state, table = false) {
       const status = state === 'unowned' ? '미보유' : state === 'completed' ? '파밍 완료' : '';
-      return '<span class="doll-name-chip' + (status ? ' is-' + state : '') + '"' + (status ? ' title="' + escapeAttr(name + ' · ' + status) + '"' : '') + '>' + escapeHtml(name) + '</span>';
+      return '<span class="' + (table ? 'reference-table-name' : 'doll-name-chip') + (status ? ' is-' + state : '') + '"' + (status ? ' title="' + escapeAttr(name + ' · ' + status) + '"' : '') + '>' + (table && state === 'completed' ? '<span aria-hidden="true">✓ </span>' : '') + escapeHtml(name) + '</span>';
     }
 
     function referenceWeapons() {
@@ -1079,7 +1079,7 @@
                   <tr>
                     <td>${escapeHtml(row.combination)}</td>
                     ${weapons.map(weapon => `
-                      <td class="cell-names">${escapeHtml((row.weapons[weapon] || []).join(', '))}</td>`).join('')}
+                      <td class="cell-names">${(row.weapons[weapon] || []).map(name => referenceNameChip(name, row.states?.[name], true)).join(' ')}</td>`).join('')}
                   </tr>`).join('')}
               </tbody>
             </table>

@@ -338,8 +338,11 @@ test('reference names retain status for split part labels and distinguish comple
    globalThis.rows = groupReferenceEntries([{doll, label:'Old (파츠 1·2)', options:['공격']}]);
  `);
  assert.match(vm.runInContext("referenceCards('세트', rows)",c), /is-unowned/);
+ assert.match(vm.runInContext("referenceSection('세트', rows, true)",c), /reference-table-name is-unowned/);
  await run(c, `await setConfig(doll, {...defaultConfig(doll), status:'tracked', done:{muzzle:true,p1:true,p2:true,p3:true}}); rows=groupReferenceEntries([{doll,label:'Old (파츠 1·2)',options:['공격']}]);`);
  assert.match(vm.runInContext("referenceCards('세트', rows)",c), /is-completed/);
+ assert.match(vm.runInContext("referenceSection('세트', rows, true)",c), /reference-table-name is-completed/);
+ assert.match(vm.runInContext("referenceSection('세트', rows, true)",c), /✓/);
  await run(c, `activeProfile=2; app.personal=loadPersonalData(); rows=groupReferenceEntries([{doll,label:'Old (파츠 1·2)',options:['공격']}]);`);
  assert.doesNotMatch(vm.runInContext("referenceCards('세트', rows)",c), /is-completed|is-unowned/);
 });
