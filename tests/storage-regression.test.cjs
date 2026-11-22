@@ -163,3 +163,51 @@ test('admin save snapshots inputs, rejects duplicate submits, and unlocks after 
     assert.equal(vm.runInContext('savingDoll', c), false);
   }
 });
+
+
+test('three profiles preserve legacy page one and isolate reset and reference refresh', () => {
+  const c = userContext();
+  vm.runInContext(`
+    closeEditor = () => {};
+    renderProfileButtons = () => {};
+    let referenceRenders = 0;
+    renderReference = () => { referenceRenders++; };
+    app.activeTab = 'reference';
+    setConfig(doll, { status: 'tracked', personalNote: 'one' });
+    const originalKey = personalStorageKey();
+    switchProfile(2);
+  `, c);
+  assert.equal(vm.runInContext('getConfig(doll).status', c), 'none');
+  vm.runInContext('setConfig(doll, { status: "unowned", personalNote: "two" }); switchProfile(3);', c);
+  assert.equal(vm.runInContext('getConfig(doll).status', c), 'none');
+  vm.runInContext('setConfig(doll, { status: "completed" }); switchProfile(2);', c);
+  assert.equal(vm.runInContext('getConfig(doll).personalNote', c), 'two');
+  c.confirm = () => true;
+  vm.runInContext('resetAllPersonalData(); switchProfile(1);', c);
+  assert.equal(vm.runInContext('getConfig(doll).personalNote', c), 'one');
+  assert.equal(vm.runInContext('personalStorageKey() === originalKey', c), true);
+  vm.runInContext('switchProfile(3); app.personal = loadPersonalData();', c);
+  assert.equal(vm.runInContext('getConfig(doll).status', c), 'completed');
+  assert.equal(vm.runInContext('localStorage.getItem("gf2-active-profile-v1")', c), '3');
+  vm.runInContext('switchProfile(2);', c);
+  assert.equal(vm.runInContext('getConfig(doll).status', c), 'none');
+  assert.ok(vm.runInContext('referenceRenders', c) >= 6);
+});
+
+test('admin choices enforce slot limits and preserve existing database options', () => {
+  const fields = { muzzle: { value: '' }, parts: { value: '' }, sets: { value: '' } };
+  const c = vm.createContext({ window: {}, document: { getElementById: id => fields[id] } });
+  vm.runInContext(admin.replace(/\binit\(\);\s*$/, ''), c);
+  vm.runInContext('renderOptionChoices = () => {}; dolls = [{recommended_sets: ["기존 세트"]}];', c);
+  vm.runInContext(`
+    for (const v of ['공격', '공격 보너스', '치명타', '치명타 피해', '체력']) toggleAdminOption('muzzle', v);
+    for (const v of ['공격', '공격 보너스', '치명타', '체력', '치명타 피해']) toggleAdminOption('parts', v);
+    toggleAdminOption('sets', '기존 세트');
+  `, c);
+  assert.equal(fields.muzzle.value.split(', ').length, 4);
+  assert.equal(fields.parts.value.split(', ').length, 3);
+  assert.ok(!fields.parts.value.includes('치명타 피해'));
+  assert.equal(fields.sets.value, '기존 세트');
+  vm.runInContext('toggleAdminOption("parts", "공격"); toggleAdminOption("parts", "체력");', c);
+  assert.ok(fields.parts.value.includes('체력'));
+});

@@ -223,6 +223,10 @@
     .login-status { color: var(--muted); overflow-wrap: anywhere; }
     .login-status.error { color: var(--danger); }
 
+    .option-group { border: 1px solid var(--border); margin: 12px 0; padding: 12px; min-width: 0; }
+    .option-choices { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
+    .option-choices button[aria-pressed="true"] { background: var(--accent); color: white; border-color: var(--accent); }
+    .option-choices button:disabled { opacity: .45; cursor: not-allowed; }
     .grid {
       display: grid;
       width: 100%;
@@ -759,22 +763,13 @@
           </div>
 
           <div class="two">
-            <label>무기 종류<input id="weapon" required list="weaponList"></label>
-            <label>속성<input id="attribute" list="attrList"></label>
+            <label>무기 종류<select id="weapon" required></select></label>
+            <label>속성<select id="attribute"></select></label>
           </div>
 
-          <datalist id="weaponList">
-            <option>돌격소총</option><option>산탄총</option><option>기관단총</option><option>기관총</option>
-            <option>저격소총</option><option>권총</option><option>도검</option>
-          </datalist>
-          <datalist id="attrList">
-            <option>물리</option><option>연소</option><option>빙결</option><option>전도</option>
-            <option>산성</option><option>탁류</option><option>공진</option>
-          </datalist>
-
-          <label>추천 세트 옵션 · 쉼표 구분<input id="sets" placeholder="강산 증폭, 정점 소환"></label>
-          <label>총구 옵션 · 최대 4개<input id="muzzle" placeholder="공격, 공격 보너스, 치명타, 치명타 피해"></label>
-          <label>파츠 옵션 · 최대 3개<input id="parts" placeholder="공격, 공격 보너스, 치명타"></label>
+          <fieldset class="option-group"><legend>추천 세트 옵션 · 여러 개 선택</legend><input id="sets" type="hidden"><div id="setsChoices" class="option-choices"></div><small id="setsCount" aria-live="polite"></small></fieldset>
+          <fieldset class="option-group"><legend>총구 옵션 · 최대 4개</legend><input id="muzzle" type="hidden"><div id="muzzleChoices" class="option-choices"></div><small id="muzzleCount" aria-live="polite"></small></fieldset>
+          <fieldset class="option-group"><legend>파츠 옵션 · 최대 3개</legend><input id="parts" type="hidden"><div id="partsChoices" class="option-choices"></div><small id="partsCount" aria-live="polite"></small></fieldset>
           <label>기본 비고<textarea id="note" maxlength="1000"></textarea></label>
 
           <label>공용키<input id="commonKey"></label>

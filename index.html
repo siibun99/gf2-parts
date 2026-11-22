@@ -1454,6 +1454,11 @@
           <p class="subtitle" id="sourceStatus">공용 데이터를 불러오는 중입니다…</p>
         </div>
 <div class="header-actions">
+  <div id="profileButtons" role="group" aria-label="진행 기록 페이지">
+    <button class="filter-chip active" type="button" data-profile="1" aria-pressed="true">페이지 1</button>
+    <button class="filter-chip" type="button" data-profile="2" aria-pressed="false">페이지 2</button>
+    <button class="filter-chip" type="button" data-profile="3" aria-pressed="false">페이지 3</button>
+  </div>
   <button
     class="button ghost theme-toggle"
     id="themeToggleButton"
@@ -1465,7 +1470,7 @@
   </button>
 
   <button class="button danger" id="resetAllButton" type="button">
-    전체 초기화
+    현재 페이지 초기화
   </button>
 </div>
       </div>
@@ -1548,6 +1553,11 @@
     const STORAGE_KEY = 'gf2-personal-farming-v2-supabase';
     const UI_STORAGE_KEY = 'gf2-personal-farming-ui-v2-supabase';
     const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
+    let activeProfile = 1;
+    try {
+      const savedProfile = Number(localStorage.getItem('gf2-active-profile-v1'));
+      if ([1, 2, 3].includes(savedProfile)) activeProfile = savedProfile;
+    } catch (_) {}
     const PART_FORBIDDEN_OPTIONS = new Set(['치명타 피해']);
     const SLOT_LABELS = {
       muzzle: '총구',
@@ -1623,7 +1633,28 @@
     }
 
     function personalStorageKey() {
-      return `${STORAGE_KEY}:guest`;
+      return activeProfile === 1 ? `${STORAGE_KEY}:guest` : `${STORAGE_KEY}:guest:page-${activeProfile}`;
+    }
+
+    function renderProfileButtons() {
+      document.querySelectorAll('[data-profile]').forEach(button => {
+        const selected = Number(button.dataset.profile) === activeProfile;
+        button.classList.toggle('active', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+    }
+
+    function switchProfile(profile) {
+      if (![1, 2, 3].includes(profile) || profile === activeProfile || !app.data) return;
+      closeEditor();
+      activeProfile = profile;
+      app.personal = loadPersonalData();
+      migratePersonalNotes();
+      app.referenceRendered = false;
+      try { localStorage.setItem('gf2-active-profile-v1', String(profile)); } catch (_) {}
+      renderProfileButtons();
+      renderFarm();
+      if (app.activeTab === 'reference') renderReference();
     }
 
     function loadPersonalData() {
@@ -1856,7 +1887,7 @@
       document.getElementById('sourceStatus').textContent =
         `${data.spreadsheetName} · ${data.dolls.length}인형`;
       document.querySelectorAll('[data-footer-source]').forEach(footer => {
-        footer.textContent = '공용 인형 데이터는 Supabase에서 읽고, 개인 진행 상황은 이 브라우저에만 저장합니다.';
+        footer.textContent = '페이지 1·2·3의 진행 기록은 각각 분리되어 이 브라우저에만 저장됩니다. 기기 간 동기화는 지원하지 않습니다.';
       });
 
       renderFilterChips();
@@ -1875,6 +1906,11 @@
     }
 
     function bindStaticEvents() {
+      renderProfileButtons();
+      document.getElementById('profileButtons').addEventListener('click', event => {
+        const button = event.target.closest('[data-profile]');
+        if (button) switchProfile(Number(button.dataset.profile));
+      });
       document.getElementById('themeToggleButton').addEventListener('click', () => {
         applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
       });
@@ -2517,6 +2553,7 @@
         app: '소녀전선2 장비 파밍 도우미',
         version: 5,
         personalKey: 'doll-id',
+        profile: activeProfile,
         source: 'supabase-public-local-personal',
         exportedAt: new Date().toISOString(),
         personal: app.personal
@@ -2532,7 +2569,7 @@
 
 function resetAllPersonalData() {
   const confirmed = confirm(
-    '이 브라우저에 저장된 모든 상태, 옵션 구성, 완료 체크, 개인 비고를 초기화할까요?\n\n삭제된 데이터는 복구할 수 없습니다.'
+    `페이지 ${activeProfile}의 상태, 옵션 구성, 완료 체크, 개인 비고를 초기화할까요?\n다른 페이지의 기록은 유지됩니다.\n\n삭제된 데이터는 복구할 수 없습니다.`
   );
 
   if (!confirmed) return;
@@ -2548,7 +2585,7 @@ function resetAllPersonalData() {
     renderReference();
   }
 
-  if (notesSaved) showToast('이 브라우저의 저장 데이터를 전체 초기화했습니다.');
+  if (notesSaved) showToast(`페이지 ${activeProfile}의 저장 데이터를 초기화했습니다.`);
 }
 
     let toastTimer = null;

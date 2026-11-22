@@ -5,6 +5,52 @@ const THEME_STORAGE_KEY = 'gf2-ui-theme-v1';
 const PORTRAIT_DEFAULT = Object.freeze({ x: 0, y: -7, zoom: 250 });
 const PORTRAIT_ORIGINAL = Object.freeze({ x: 0, y: 0, zoom: 0 });
 const PART_FORBIDDEN_OPTIONS = new Set(['치명타 피해']);
+const OPTION_CATALOG = {
+  weapon: ['돌격소총', '산탄총', '기관단총', '기관총', '저격소총', '권총', '도검'],
+  attribute: ['물리', '연소', '빙결', '전도', '산성', '탁류', '공진'],
+  sets: ['실탄 증폭', '작열 증폭', '빙점 증폭', '자력 증폭', '강산 증폭', '격류 증폭', '육박 강공', '정점 소환', '결전 추진', '위상 타격', '전술 연산', '응급 회복'],
+  muzzle: ['공격', '공격 보너스', '치명타', '치명타 피해', '체력', '체력 보너스', '방어', '방어 보너스'],
+  parts: ['공격', '공격 보너스', '치명타', '체력', '체력 보너스', '방어', '방어 보너스']
+};
+const OPTION_COLUMNS = { weapon: 'weapon_type', attribute: 'attribute', sets: 'recommended_sets', muzzle: 'recommended_muzzle', parts: 'recommended_parts' };
+const OPTION_LIMITS = { sets: Infinity, muzzle: 4, parts: 3 };
+
+function availableOptions(key) {
+  const existing = dolls.flatMap(doll => doll[OPTION_COLUMNS[key]] || []);
+  return [...new Set([...OPTION_CATALOG[key], ...existing])]
+    .filter(value => key !== 'parts' || !PART_FORBIDDEN_OPTIONS.has(value));
+}
+
+function renderOptionChoices() {
+  for (const key of ['weapon', 'attribute']) {
+    const selected = $(key).value;
+    const options = [...new Set([...availableOptions(key), selected].filter(Boolean))];
+    $(key).innerHTML = '<option value="">선택해주세요</option>' + options.map(value =>
+      `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('');
+    $(key).value = selected;
+  }
+  for (const key of ['sets', 'muzzle', 'parts']) {
+    const selected = splitOptions($(key).value);
+    const options = [...new Set([...availableOptions(key), ...selected])];
+    $(key + 'Choices').innerHTML = options.map(value => {
+      const checked = selected.includes(value);
+      return `<button type="button" data-option-group="${key}" data-option="${escapeHtml(value)}" aria-pressed="${checked}" ${!checked && selected.length >= OPTION_LIMITS[key] ? 'disabled' : ''}>${escapeHtml(value)}</button>`;
+    }).join('');
+    $(key + 'Count').textContent = `현재 ${selected.length}개 선택`;
+  }
+}
+
+function toggleAdminOption(key, value) {
+  if (savingDoll || !Object.hasOwn(OPTION_LIMITS, key)) return;
+  const selected = splitOptions($(key).value);
+  if (selected.includes(value)) selected.splice(selected.indexOf(value), 1);
+  else {
+    if (!availableOptions(key).includes(value) || selected.length >= OPTION_LIMITS[key]) return;
+    selected.push(value);
+  }
+  $(key).value = selected.join(', ');
+  renderOptionChoices();
+}
 const IMAGE_UPLOAD_SIZE = 768;
 const IMAGE_UPLOAD_QUALITY = 0.84;
 let db = null;
@@ -324,6 +370,10 @@ function bindEvents() {
   });
   $('clearButton').addEventListener('click', clearForm);
   $('dollForm').addEventListener('submit', saveDoll);
+  $('dollForm').addEventListener('click', event => {
+    const button = event.target.closest('[data-option-group]');
+    if (button) toggleAdminOption(button.dataset.optionGroup, button.dataset.option);
+  });
   $('dollList').addEventListener('click', handleListClick);
   $('dollList').addEventListener('keydown', handleListKeydown);
   $('dollSearch').addEventListener('input', handleDollSearch);
@@ -440,6 +490,7 @@ async function loadDolls() {
   }
 
   dolls = data || [];
+  renderOptionChoices();
   renderDolls();
   syncAdminPanelHeight();
   if (!$('id').value.trim()) setNewDollDefaults();
@@ -609,6 +660,7 @@ function fillForm(doll) {
   $('sets').value = (doll.recommended_sets || []).join(', ');
   $('muzzle').value = (doll.recommended_muzzle || []).join(', ');
   $('parts').value = (doll.recommended_parts || []).join(', ');
+  renderOptionChoices();
   $('note').value = doll.default_note || '';
   $('commonKey').value = doll.common_key || '';
   $('commonEffect').value = doll.common_key_effect || '';
@@ -631,6 +683,8 @@ function fillForm(doll) {
 
 function clearForm() {
   $('dollForm').reset();
+  for (const key of ['sets', 'muzzle', 'parts', 'weapon', 'attribute']) $(key).value = '';
+  renderOptionChoices();
   $('id').value = '';
   $('active').checked = true;
   $('removeImage').checked = false;
@@ -674,6 +728,10 @@ async function saveDoll(event) {
   }
 
   const recommendedParts = splitOptions($('parts').value);
+  if (recommendedParts.length > 3 || splitOptions($('muzzle').value).length > 4) {
+    toast('총구는 최대 4개, 파츠는 최대 3개까지 선택해주세요.', true);
+    return;
+  }
   const forbiddenPartOption = recommendedParts.find(option => PART_FORBIDDEN_OPTIONS.has(option));
   if (forbiddenPartOption) {
     toast(`파츠 옵션에는 '${forbiddenPartOption}'을 사용할 수 없습니다.`, true);
