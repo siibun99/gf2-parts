@@ -1007,8 +1007,13 @@
     function referenceCards(title, rows) {
       return '<h2 class="reference-title">' + escapeHtml(title) + '</h2><p class="subtitle">아래 옵션 조합을 필요로 하는 인형입니다. 게임 내 자동 잠금과 연동되지 않습니다.</p><div class="plan-grid">' + rows.map((row, index) => {
         const groups = referenceWeapons().map(weapon => [weapon, row.weapons[weapon] || []]).filter(([, names]) => names.length);
-        return '<article class="plan-card"><h3>옵션 조합 ' + (index + 1) + '</h3><div class="plan-options">' + row.combination.split(', ').map(option => '<span>' + escapeHtml(option) + '</span>').join('') + '</div>' + groups.map(([weapon, names]) => '<div class="plan-dolls"><strong>' + escapeHtml(weapon) + '</strong><div>' + names.map(name => '<span class="doll-name-chip">' + escapeHtml(name) + '</span>').join('') + '</div></div>').join('') + '</article>';
+        return '<article class="plan-card"><h3>옵션 조합 ' + (index + 1) + '</h3><div class="plan-options">' + row.combination.split(', ').map(option => '<span>' + escapeHtml(option) + '</span>').join('') + '</div>' + groups.map(([weapon, names]) => '<div class="plan-dolls"><strong>' + escapeHtml(weapon) + '</strong><div>' + names.map(name => referenceNameChip(name, row.states?.[name])).join('') + '</div></div>').join('') + '</article>';
       }).join('') + '</div>';
+    }
+
+    function referenceNameChip(name, state) {
+      const status = state === 'unowned' ? '미보유' : state === 'completed' ? '파밍 완료' : '';
+      return '<span class="doll-name-chip' + (status ? ' is-' + state : '') + '"' + (status ? ' title="' + escapeAttr(name + ' · ' + status) + '"' : '') + '>' + escapeHtml(name) + '</span>';
     }
 
     function referenceWeapons() {
@@ -1027,6 +1032,7 @@
 
     function groupReferenceEntries(entries) {
       const map = new Map();
+      const states = new Map();
       const weapons = referenceWeapons();
 
       entries.forEach(entry => {
@@ -1037,7 +1043,9 @@
         if (!options.length) return;
 
         const key = options.join(', ');
-        if (!map.has(key)) map.set(key, {});
+        if (!map.has(key)) { map.set(key, {}); states.set(key, new Map()); }
+        const config = getConfig(entry.doll);
+        states.get(key).set(entry.label, config.status === 'unowned' ? 'unowned' : isConfigComplete(config) ? 'completed' : 'none');
         if (!map.get(key)[weapon]) map.get(key)[weapon] = [];
         if (!map.get(key)[weapon].includes(entry.label)) {
           map.get(key)[weapon].push(entry.label);
@@ -1045,7 +1053,7 @@
       });
 
       return [...map.entries()]
-        .map(([combination, groupedWeapons]) => ({ combination, weapons: groupedWeapons }))
+        .map(([combination, groupedWeapons]) => ({ combination, weapons: groupedWeapons, states: Object.fromEntries(states.get(combination)) }))
         .sort((a, b) => a.combination.localeCompare(b.combination, 'ko'));
     }
 

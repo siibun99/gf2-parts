@@ -329,3 +329,17 @@ test('reference tab selected before data arrives renders once loading completes'
   await run(c, `await handleDataLoaded({ ...app.data, weapons: ['돌격소총'], spreadsheetName: 'test' });`);
   assert.equal(c.referenceLoadRenders, 1);
 });
+
+test('reference names retain status for split part labels and distinguish completion from unowned', async () => {
+ const c=userContext();
+ await run(c, `
+   app.data.weapons = ['돌격소총']; app.data.statOptions = ['공격']; doll.weapon = '돌격소총';
+   await setConfig(doll, {...defaultConfig(doll), status:'unowned'});
+   globalThis.rows = groupReferenceEntries([{doll, label:'Old (파츠 1·2)', options:['공격']}]);
+ `);
+ assert.match(vm.runInContext("referenceCards('세트', rows)",c), /is-unowned/);
+ await run(c, `await setConfig(doll, {...defaultConfig(doll), status:'tracked', done:{muzzle:true,p1:true,p2:true,p3:true}}); rows=groupReferenceEntries([{doll,label:'Old (파츠 1·2)',options:['공격']}]);`);
+ assert.match(vm.runInContext("referenceCards('세트', rows)",c), /is-completed/);
+ await run(c, `activeProfile=2; app.personal=loadPersonalData(); rows=groupReferenceEntries([{doll,label:'Old (파츠 1·2)',options:['공격']}]);`);
+ assert.doesNotMatch(vm.runInContext("referenceCards('세트', rows)",c), /is-completed|is-unowned/);
+});
