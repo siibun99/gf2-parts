@@ -1517,6 +1517,10 @@
         </div>
         <button class="button small" type="button" id="toggleReferenceButton">모두 펼치기</button>
       </div>
+      <div class="filter-row" id="referenceFilters" role="group" aria-label="무기파츠 표 표시 필터">
+        <button class="filter-chip" type="button" data-reference-filter="referenceHideUnowned" aria-pressed="false">미보유 숨기기</button>
+        <button class="filter-chip" type="button" data-reference-filter="referenceHideCompleted" aria-pressed="false">파밍 완료 숨기기</button>
+      </div>
       <div id="referenceContent"></div>
       <div class="source-line" data-footer-source></div>
       </div>
@@ -1585,6 +1589,8 @@
       attrFilters: new Set(),
       scope: 'all',
       hideUnowned: loadUiPreferences().hideUnowned,
+      referenceHideUnowned: loadUiPreferences().referenceHideUnowned,
+      referenceHideCompleted: loadUiPreferences().referenceHideCompleted,
       editorName: null,
       editorDraft: null,
       referenceRendered: false,
@@ -1595,17 +1601,23 @@
       try {
         const raw = localStorage.getItem(UI_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
-        return { hideUnowned: Boolean(parsed?.hideUnowned) };
+        return {
+          hideUnowned: Boolean(parsed?.hideUnowned),
+          referenceHideUnowned: Boolean(parsed?.referenceHideUnowned),
+          referenceHideCompleted: Boolean(parsed?.referenceHideCompleted)
+        };
       } catch (error) {
         console.error('화면 설정 불러오기 실패', error);
-        return { hideUnowned: false };
+        return { hideUnowned: false, referenceHideUnowned: false, referenceHideCompleted: false };
       }
     }
 
     function saveUiPreferences() {
       try {
         localStorage.setItem(UI_STORAGE_KEY, JSON.stringify({
-          hideUnowned: app.hideUnowned
+          hideUnowned: app.hideUnowned,
+          referenceHideUnowned: app.referenceHideUnowned,
+          referenceHideCompleted: app.referenceHideCompleted
         }));
       } catch (error) {
         console.error('화면 설정 저장 실패', error);
@@ -1962,6 +1974,15 @@
 
       document.getElementById('resetAllButton').addEventListener('click', resetAllPersonalData);
       document.getElementById('toggleReferenceButton').addEventListener('click', toggleAllReferenceSections);
+      document.getElementById('referenceFilters').addEventListener('click', event => {
+        const button = event.target.closest('[data-reference-filter]');
+        if (!button) return;
+        const key = button.dataset.referenceFilter;
+        if (!['referenceHideUnowned', 'referenceHideCompleted'].includes(key)) return;
+        app[key] = !app[key];
+        saveUiPreferences();
+        renderReference();
+      });
     }
 
     function switchTab(tab) {
@@ -2414,12 +2435,20 @@
 
     function renderReference() {
       if (!app.data) return;
+      document.querySelectorAll('[data-reference-filter]').forEach(button => {
+        const enabled = app[button.dataset.referenceFilter];
+        button.classList.toggle('active', enabled);
+        button.setAttribute('aria-pressed', String(enabled));
+      });
       const container = document.getElementById('referenceContent');
       const sections = [];
       const effective = app.data.dolls.map(doll => ({
         doll,
         config: getConfig(doll)
-      }));
+      })).filter(({ config }) =>
+        !(app.referenceHideUnowned && config.status === 'unowned') &&
+        !(app.referenceHideCompleted && isConfigComplete(config))
+      );
 
       const muzzleEntries = effective.map(({ doll, config }) => ({
         doll,
@@ -2427,7 +2456,7 @@
         options: config.muzzle
       }));
       const muzzleRows = groupReferenceEntries(muzzleEntries);
-      sections.push(referenceSection('총구 옵션', muzzleRows, true));
+      if (muzzleRows.length) sections.push(referenceSection('총구 옵션', muzzleRows, true));
 
       const selectedSetNames = new Set();
       effective.forEach(({ config }) => {
@@ -2468,7 +2497,8 @@
         if (rows.length) sections.push(referenceSection(setOption, rows, false));
       });
 
-      container.innerHTML = sections.join('') || '<div class="empty-state">표시할 개인 장비 구성이 없습니다.</div>';
+      container.innerHTML = sections.join('') || '<div class="empty-state">현재 표시 조건에 맞는 장비 구성이 없습니다. 숨기기 필터를 해제하거나 인형 구성을 확인해주세요.</div>';
+      document.getElementById('toggleReferenceButton').textContent = '모두 펼치기';
       app.referenceRendered = true;
     }
 

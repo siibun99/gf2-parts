@@ -30,6 +30,46 @@ test('browser scripts parse', () => {
   new vm.Script(admin);
 });
 
+test('reference filters apply to muzzle and sets, persist independently, and follow profiles', () => {
+  const c = userContext();
+  const elements = { referenceContent: {}, toggleReferenceButton: {} };
+  c.document = { querySelectorAll: () => [], getElementById: id => elements[id] };
+  vm.runInContext(`
+    app.data = {
+      dolls: ['Owned', 'Unowned', 'Complete', 'AllSlots'].map((name, index) => ({
+        id: 'd' + index, name, weapon: '돌격소총', setOptions: ['세트'], muzzle: ['공격'], part: ['공격']
+      })),
+      weapons: ['돌격소총'], setOptions: ['세트'], statOptions: ['공격']
+    };
+    setConfig(app.data.dolls[1], { status: 'unowned' });
+    setConfig(app.data.dolls[2], { status: 'completed' });
+    setConfig(app.data.dolls[3], { status: 'tracked', done: { muzzle: true, p1: true, p2: true, p3: true } });
+    renderReference();
+  `, c);
+  for (const name of ['Owned', 'Unowned', 'Complete', 'AllSlots']) assert.ok(elements.referenceContent.innerHTML.includes(name));
+  vm.runInContext('app.referenceHideUnowned = true; renderReference();', c);
+  assert.ok(!elements.referenceContent.innerHTML.includes('Unowned'));
+  assert.ok(elements.referenceContent.innerHTML.includes('Complete'));
+  vm.runInContext('app.referenceHideCompleted = true; saveUiPreferences(); renderReference();', c);
+  assert.ok(!elements.referenceContent.innerHTML.includes('Complete'));
+  assert.ok(!elements.referenceContent.innerHTML.includes('AllSlots'));
+  assert.equal((elements.referenceContent.innerHTML.match(/Owned/g) || []).length, 2);
+  assert.equal(vm.runInContext('loadUiPreferences().referenceHideCompleted && loadUiPreferences().referenceHideUnowned && !loadUiPreferences().hideUnowned', c), true);
+  vm.runInContext(`
+    closeEditor = () => {};
+    renderProfileButtons = () => {};
+    app.activeTab = 'reference';
+    switchProfile(2);
+  `, c);
+  assert.ok(elements.referenceContent.innerHTML.includes('Unowned'));
+  assert.ok(elements.referenceContent.innerHTML.includes('Complete'));
+  vm.runInContext(`
+    app.data.dolls.forEach(d => setConfig(d, { status: 'completed' }));
+  `, c);
+  assert.match(elements.referenceContent.innerHTML, /현재 표시 조건에 맞는/);
+  assert.ok(!elements.referenceContent.innerHTML.includes('<table'));
+});
+
 test('inline login opens without prompt and handles validation, duplicate submits, failure and retry', async () => {
   const fields = {};
   for (const id of ['loginPanel', 'loginEmail', 'loginForm', 'loginStatus', 'sendLoginButton']) {
