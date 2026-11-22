@@ -346,3 +346,23 @@ test('reference names retain status for split part labels and distinguish comple
  await run(c, `activeProfile=2; app.personal=loadPersonalData(); rows=groupReferenceEntries([{doll,label:'Old (파츠 1·2)',options:['공격']}]);`);
  assert.doesNotMatch(vm.runInContext("referenceCards('세트', rows)",c), /is-completed|is-unowned/);
 });
+
+test('game stat order is shared, stable across saved permutations, and does not mutate records', () => {
+ const c=userContext();
+ vm.runInContext(`
+   app.data.weapons=['돌격소총']; doll.weapon='돌격소총';
+   globalThis.savedOptions=['공격 보너스','치명타 피해','공격','치명타'];
+   globalThis.ordered=sortStatOptions(savedOptions);
+   globalThis.grouped=groupReferenceEntries([
+     {doll,label:'A',options:savedOptions},
+     {doll,label:'B',options:[...savedOptions].reverse()},
+     {doll,label:'C',options:['체력','방어']}
+   ]);
+ `,c);
+ assert.equal(c.ordered.join(','),'공격,치명타,치명타 피해,공격 보너스');
+ assert.equal(c.savedOptions.join(','),'공격 보너스,치명타 피해,공격,치명타');
+ assert.equal(c.grouped.length,2);
+ assert.equal(c.grouped[0].weapons['돌격소총'].join(','),'A,B');
+ assert.equal(c.GF2_OPTIONS.muzzle.join(','),'공격,체력,방어,치명타,치명타 피해,공격 보너스,체력 보너스,방어 보너스');
+ assert.equal(c.GF2_OPTIONS.parts.includes('치명타 피해'),false);
+});

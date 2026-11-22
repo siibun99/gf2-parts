@@ -103,3 +103,6 @@ dialog::backdrop { background: #081b25aa; }
 .reference-table-name { display: inline-block; max-width: 100%; margin: 2px 3px 2px 0; padding: 1px 4px; border-radius: 3px; vertical-align: top; overflow-wrap: anywhere; }
 .reference-table-name.is-unowned { text-decoration: line-through; text-decoration-thickness: 1px; }
 .reference-table-name.is-completed { font-weight: 700; }
+
+/* Match the game stat picker: read left to right, then top to bottom. */
+.choice-grid.stat-choices, #muzzleChoices, #partsChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

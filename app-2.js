@@ -676,7 +676,7 @@
 
     function renderOptionTags(options, className = '') {
       if (!options?.length) return '<span class="tag">미선택</span>';
-      return options.map(value => `<span class="option-tag ${className}">${escapeHtml(value)}</span>`).join('');
+      return (className === 'set' ? options : sortStatOptions(options)).map(value => `<span class="option-tag ${className}">${escapeHtml(value)}</span>`).join('');
     }
 
     function updateFarmCardState(doll, config) {
@@ -851,7 +851,7 @@
             <strong>${escapeHtml(group.label)}</strong>
             <span>${escapeHtml(group.help)} · 현재 ${group.selected.length}개</span>
           </div>
-          <div class="choice-grid">
+          <div class="choice-grid${group.key === 'setOptions' ? '' : ' stat-choices'}">
             ${group.options.map(option => `
               <button
                 class="choice-chip ${group.selected.includes(option) ? 'selected' : ''} ${group.recommended.includes(option) ? 'recommended' : ''}"
@@ -1020,14 +1020,16 @@
       return app.data.weapons.filter(weapon => weapon && weapon !== '기타');
     }
 
+    function compareStatOptions(a, b) {
+      const order = GF2_OPTIONS.muzzle;
+      const ai = order.indexOf(a), bi = order.indexOf(b);
+      const aRank = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+      const bRank = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+      return aRank - bRank || a.localeCompare(b, 'ko');
+    }
+
     function sortStatOptions(options) {
-      return [...new Set(options || [])].sort((a, b) => {
-        const ai = app.data.statOptions.indexOf(a);
-        const bi = app.data.statOptions.indexOf(b);
-        const aRank = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
-        const bRank = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
-        return aRank - bRank || a.localeCompare(b, 'ko');
-      });
+      return [...new Set(options || [])].sort(compareStatOptions);
     }
 
     function groupReferenceEntries(entries) {
@@ -1054,7 +1056,14 @@
 
       return [...map.entries()]
         .map(([combination, groupedWeapons]) => ({ combination, weapons: groupedWeapons, states: Object.fromEntries(states.get(combination)) }))
-        .sort((a, b) => a.combination.localeCompare(b.combination, 'ko'));
+        .sort((a, b) => {
+          const left = a.combination.split(', '), right = b.combination.split(', ');
+          for (let i = 0; i < Math.min(left.length, right.length); i++) {
+            const difference = compareStatOptions(left[i], right[i]);
+            if (difference) return difference;
+          }
+          return left.length - right.length;
+        });
     }
 
     function referenceSection(title, rows, open) {
